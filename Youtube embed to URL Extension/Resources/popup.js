@@ -4,6 +4,7 @@ console.log("Hello World!", browser);
 document.addEventListener('DOMContentLoaded', function() {
     const statusText = document.getElementById('status-text');
     const cookiesBrowserSelect = document.getElementById('cookies-browser');
+    const debugModeCheckbox = document.getElementById('debug-mode');
     const saveSettingsButton = document.getElementById('save-settings');
     
     // Load saved settings
@@ -13,25 +14,35 @@ document.addEventListener('DOMContentLoaded', function() {
     saveSettingsButton.addEventListener('click', saveSettings);
     
     function loadSettings() {
-        browser.storage.local.get(['cookiesBrowser']).then((result) => {
+        browser.storage.local.get(['cookiesBrowser', 'debugMode']).then((result) => {
             if (result.cookiesBrowser) {
                 cookiesBrowserSelect.value = result.cookiesBrowser;
             } else {
                 // Default to safari
                 cookiesBrowserSelect.value = 'safari';
             }
+            
+            if (result.debugMode !== undefined) {
+                debugModeCheckbox.checked = result.debugMode;
+            } else {
+                // Default to false (debug off)
+                debugModeCheckbox.checked = false;
+            }
         }).catch((error) => {
             console.error('Error loading settings:', error);
             // Default to safari on error
             cookiesBrowserSelect.value = 'safari';
+            debugModeCheckbox.checked = false;
         });
     }
     
     function saveSettings() {
         const cookiesBrowser = cookiesBrowserSelect.value;
+        const debugMode = debugModeCheckbox.checked;
         
         browser.storage.local.set({
-            cookiesBrowser: cookiesBrowser
+            cookiesBrowser: cookiesBrowser,
+            debugMode: debugMode
         }).then(() => {
             // Show success message
             const originalText = saveSettingsButton.textContent;

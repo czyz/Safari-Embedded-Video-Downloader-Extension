@@ -9,6 +9,27 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // YouTube Video Detector and Controller
 (function() {
     'use strict';
+    
+    // Debug logging function that checks settings
+    let debugEnabled = false;
+    
+    // Load debug setting
+    browser.storage.local.get(['debugMode']).then((result) => {
+        debugEnabled = result.debugMode || false;
+    }).catch(() => {
+        debugEnabled = false;
+    });
+    
+    function debugLog(...args) {
+        if (debugEnabled) {
+            console.log(...args);
+        }
+    }
+    
+    debugLog('=== YOUTUBE VIDEO DETECTOR EXTENSION LOADED ===');
+    debugLog('Extension version: 1.2.0');
+    debugLog('Current page:', window.location.href);
+    debugLog('User agent:', navigator.userAgent);
 
     // Function to copy text to clipboard
     function copyToClipboard(text) {
@@ -89,67 +110,157 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         const modal = document.createElement('div');
         modal.id = 'video-command-fallback-modal';
-        modal.style.position = 'fixed';
-        modal.style.top = '0';
-        modal.style.left = '0';
-        modal.style.width = '100vw';
-        modal.style.height = '100vh';
-        modal.style.background = 'rgba(0,0,0,0.7)';
-        modal.style.display = 'flex';
-        modal.style.alignItems = 'center';
-        modal.style.justifyContent = 'center';
-        modal.style.zIndex = '99999';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            backdrop-filter: blur(4px);
+        `;
 
         const box = document.createElement('div');
-        box.style.background = '#2d3748';
-        box.style.color = 'white';
-        box.style.padding = '24px 20px 16px 20px';
-        box.style.borderRadius = '8px';
-        box.style.boxShadow = '0 2px 16px rgba(0,0,0,0.4)';
-        box.style.display = 'flex';
-        box.style.flexDirection = 'column';
-        box.style.alignItems = 'center';
-        box.style.maxWidth = '90vw';
-        box.style.minWidth = '320px';
+        box.style.cssText = `
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            color: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 90vw;
+            min-width: 400px;
+            border: 1px solid rgba(255,255,255,0.1);
+        `;
 
-        const label = document.createElement('div');
-        label.textContent = 'Copy this command:';
-        label.style.marginBottom = '10px';
-        label.style.fontWeight = 'bold';
-        label.style.fontSize = '15px';
-        box.appendChild(label);
+        const icon = document.createElement('div');
+        icon.innerHTML = '📋';
+        icon.style.cssText = `
+            font-size: 48px;
+            margin-bottom: 16px;
+        `;
+        box.appendChild(icon);
+
+        const title = document.createElement('div');
+        title.textContent = 'Download Command';
+        title.style.cssText = `
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #e2e8f0;
+        `;
+        box.appendChild(title);
+
+        const subtitle = document.createElement('div');
+        subtitle.textContent = 'Copy this command to your terminal:';
+        subtitle.style.cssText = `
+            font-size: 14px;
+            color: #a0aec0;
+            margin-bottom: 20px;
+            text-align: center;
+        `;
+        box.appendChild(subtitle);
 
         const textarea = document.createElement('textarea');
         textarea.value = command;
         textarea.readOnly = true;
-        textarea.style.width = '100%';
-        textarea.style.minWidth = '260px';
-        textarea.style.maxWidth = '500px';
-        textarea.style.height = '60px';
-        textarea.style.fontSize = '13px';
-        textarea.style.background = '#1a202c';
-        textarea.style.color = 'white';
-        textarea.style.border = '1px solid #4a5568';
-        textarea.style.borderRadius = '4px';
-        textarea.style.padding = '8px';
-        textarea.style.marginBottom = '16px';
-        textarea.style.resize = 'none';
+        textarea.style.cssText = `
+            width: 100%;
+            min-width: 360px;
+            max-width: 600px;
+            height: 80px;
+            font-size: 13px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            background: #1a202c;
+            color: #e2e8f0;
+            border: 2px solid #4a5568;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 24px;
+            resize: none;
+            line-height: 1.4;
+        `;
         textarea.addEventListener('focus', () => textarea.select());
         box.appendChild(textarea);
 
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        `;
+
+        const copyAndCloseBtn = document.createElement('button');
+        copyAndCloseBtn.textContent = 'Copy & Close';
+        copyAndCloseBtn.style.cssText = `
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+        `;
+        copyAndCloseBtn.addEventListener('mouseenter', () => {
+            copyAndCloseBtn.style.background = 'linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%)';
+            copyAndCloseBtn.style.transform = 'translateY(-1px)';
+        });
+        copyAndCloseBtn.addEventListener('mouseleave', () => {
+            copyAndCloseBtn.style.background = 'linear-gradient(135deg, #4299e1 0%, #3182ce 100%)';
+            copyAndCloseBtn.style.transform = 'translateY(0)';
+        });
+        copyAndCloseBtn.addEventListener('click', () => {
+            copyToClipboard(command).then((success) => {
+                if (success) {
+                    copyAndCloseBtn.textContent = 'Copied!';
+                    copyAndCloseBtn.style.background = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)';
+                    setTimeout(() => modal.remove(), 1000);
+                } else {
+                    copyAndCloseBtn.textContent = 'Failed';
+                    copyAndCloseBtn.style.background = 'linear-gradient(135deg, #f56565 0%, #e53e3e 100%)';
+                    setTimeout(() => {
+                        copyAndCloseBtn.textContent = 'Copy & Close';
+                        copyAndCloseBtn.style.background = 'linear-gradient(135deg, #4299e1 0%, #3182ce 100%)';
+                    }, 2000);
+                }
+            });
+        });
+        buttonContainer.appendChild(copyAndCloseBtn);
+
         const closeBtn = document.createElement('button');
         closeBtn.textContent = 'Close';
-        closeBtn.style.background = 'rgba(0,0,0,0.7)';
-        closeBtn.style.color = 'white';
-        closeBtn.style.border = 'none';
-        closeBtn.style.borderRadius = '4px';
-        closeBtn.style.padding = '6px 18px';
-        closeBtn.style.fontSize = '14px';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.style.marginTop = '4px';
+        closeBtn.style.cssText = `
+            background: transparent;
+            color: #a0aec0;
+            border: 1px solid #4a5568;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        `;
+        closeBtn.addEventListener('mouseenter', () => {
+            closeBtn.style.background = 'rgba(255,255,255,0.1)';
+            closeBtn.style.color = '#e2e8f0';
+        });
+        closeBtn.addEventListener('mouseleave', () => {
+            closeBtn.style.background = 'transparent';
+            closeBtn.style.color = '#a0aec0';
+        });
         closeBtn.addEventListener('click', () => modal.remove());
-        box.appendChild(closeBtn);
+        buttonContainer.appendChild(closeBtn);
 
+        box.appendChild(buttonContainer);
         modal.appendChild(box);
         document.body.appendChild(modal);
         textarea.focus();
@@ -157,6 +268,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Function to extract video information from various sources
     function extractVideoInfo(element) {
+        debugLog('extractVideoInfo called with element:', element.tagName, element.className);
         // Check for lite-youtube videoid attribute
         if (element.tagName === 'LITE-YOUTUBE' && element.getAttribute('videoid')) {
             return {
@@ -169,12 +281,12 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (element.tagName === 'IFRAME') {
             const src = element.getAttribute('src');
             if (src) {
-                console.log('Checking iframe src:', src);
+                debugLog('Checking iframe src:', src);
                 
                 // Enhanced regex to handle various YouTube embed URLs with query parameters
                 const match = src.match(/(?:youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\?|$)/);
                 if (match) {
-                    console.log('YouTube video ID found in iframe src:', match[1]);
+                    debugLog('YouTube video ID found in iframe src:', match[1]);
                     return {
                         type: 'youtube',
                         videoId: match[1]
@@ -184,7 +296,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 // Fallback: try without requiring query parameter separator
                 const fallbackMatch = src.match(/(?:youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
                 if (fallbackMatch) {
-                    console.log('YouTube video ID found in iframe src (fallback):', fallbackMatch[1]);
+                    debugLog('YouTube video ID found in iframe src (fallback):', fallbackMatch[1]);
                     return {
                         type: 'youtube',
                         videoId: fallbackMatch[1]
@@ -193,7 +305,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 
                 // Check for Google Developers frame URLs that might contain YouTube players
                 if (src.includes('developers.google.com/frame/youtube/')) {
-                    console.log('Google Developers YouTube frame detected:', src);
+                    debugLog('Google Developers YouTube frame detected:', src);
                     // For Google Developers frames, we'll need to check the content after it loads
                     return {
                         type: 'google-developers-frame',
@@ -218,18 +330,22 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         // Check for Reddit video (multiple possible element types)
+        debugLog('Checking Reddit condition for:', element.tagName, element.getAttribute('data-testid'));
         if (element.tagName === 'SHREDDIT-PLAYER-2' || 
             element.tagName === 'SHREDDIT-PLAYER' ||
             element.tagName === 'VIDEO' ||
             element.getAttribute('data-testid')?.includes('video')) {
+            debugLog('Reddit condition matched!');
             
-            console.log('Processing Reddit video element:', element.tagName, element.getAttribute('data-testid'));
+            debugLog('Processing Reddit video element:', element.tagName, element.getAttribute('data-testid'));
+            debugLog('Element src attribute:', element.getAttribute('src'));
+            debugLog('Element poster attribute:', element.getAttribute('poster'));
             
             const packagedMediaJson = element.getAttribute('packaged-media-json');
             if (packagedMediaJson) {
                 try {
                     const mediaData = JSON.parse(packagedMediaJson);
-                    console.log('Reddit media data:', mediaData);
+                    debugLog('Reddit media data:', mediaData);
                     
                     if (mediaData.playbackMp4s && mediaData.playbackMp4s.permutations) {
                         // Find the highest resolution
@@ -258,23 +374,62 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             } else {
                 // Check for HLS URL (including with query parameters)
                 const hlsUrl = element.getAttribute('src');
+                debugLog('Checking for HLS URL:', hlsUrl);
                 if (hlsUrl && hlsUrl.includes('.m3u8')) {
-                    console.log('Found Reddit HLS URL:', hlsUrl);
+                    debugLog('Found Reddit HLS URL:', hlsUrl);
                     return {
                         type: 'reddit-hls',
                         hlsUrl: hlsUrl
                     };
+                } else {
+                    debugLog('HLS URL check failed - URL does not contain .m3u8');
                 }
                 
                 // Check for direct video URL
                 const videoUrl = element.getAttribute('src');
                 if (videoUrl && (videoUrl.includes('.mp4') || videoUrl.includes('reddit.com') || videoUrl.includes('v.redd.it'))) {
-                    console.log('Found Reddit video URL:', videoUrl);
+                    debugLog('Found Reddit video URL:', videoUrl);
                     return {
                         type: 'reddit',
                         videoUrl: videoUrl,
                         resolution: 'unknown'
                     };
+                }
+                
+                // For video elements in shadow DOM, check for blob URLs and poster images
+                if (element.tagName === 'VIDEO') {
+                    const videoSrc = element.getAttribute('src');
+                    const poster = element.getAttribute('poster');
+                    
+                    // If it's a blob URL (like the one you showed), try to get info from the poster
+                    if (videoSrc && videoSrc.startsWith('blob:') && poster) {
+                        debugLog('Found video with blob URL and poster:', poster);
+                        // Extract video ID from poster URL if possible
+                        const posterMatch = poster.match(/v0-([a-zA-Z0-9_-]+)/);
+                        if (posterMatch) {
+                            return {
+                                type: 'reddit-blob',
+                                videoId: posterMatch[1],
+                                poster: poster,
+                                blobUrl: videoSrc
+                            };
+                        }
+                    }
+                    
+                    // Check for source elements inside the video
+                    const sourceElement = element.querySelector('source');
+                    if (sourceElement) {
+                        const sourceSrc = sourceElement.getAttribute('src');
+                        const sourceType = sourceElement.getAttribute('type');
+                        debugLog('Found video source:', sourceSrc, sourceType);
+                        
+                        if (sourceSrc && sourceSrc.includes('.m3u8')) {
+                            return {
+                                type: 'reddit-hls',
+                                hlsUrl: sourceSrc
+                            };
+                        }
+                    }
                 }
                 
                 // Check for data attributes that might contain video info
@@ -299,6 +454,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
         }
 
+        debugLog('extractVideoInfo returning null - no video info found');
         return null;
     }
 
@@ -335,6 +491,8 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             videoIdDisplay.textContent = `Reddit ${videoInfo.resolution}`;
         } else if (videoInfo.type === 'reddit-hls') {
             videoIdDisplay.textContent = 'Reddit HLS Video';
+        } else if (videoInfo.type === 'reddit-blob') {
+            videoIdDisplay.textContent = `Reddit Video (${videoInfo.videoId})`;
         }
 
         // View button (YouTube or Reddit)
@@ -373,6 +531,13 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             viewButton.textContent = 'View';
             viewButton.addEventListener('click', () => {
                 window.open(videoInfo.hlsUrl, '_blank');
+            });
+        } else if (videoInfo.type === 'reddit-blob') {
+            viewButton.textContent = 'View';
+            viewButton.addEventListener('click', () => {
+                // Try to construct the Reddit video URL from the video ID
+                const redditUrl = `https://v.redd.it/${videoInfo.videoId}`;
+                window.open(redditUrl, '_blank');
             });
         }
         
@@ -542,6 +707,27 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     console.error('Error copying to clipboard:', error);
                     showCommandFallback(command);
                 });
+            } else if (videoInfo.type === 'reddit-blob') {
+                // Handle Reddit blob video download
+                const redditUrl = `https://v.redd.it/${videoInfo.videoId}`;
+                const command = `yt-dlp "${redditUrl}"`;
+                copyToClipboard(command).then((success) => {
+                    if (success) {
+                        const originalText = downloadButton.textContent;
+                        downloadButton.textContent = 'Command Copied!';
+                        downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                        setTimeout(() => {
+                            downloadButton.textContent = originalText;
+                            downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                        }, 2000);
+                    } else {
+                        console.error('Clipboard copy failed');
+                        showCommandFallback(command);
+                    }
+                }).catch((error) => {
+                    console.error('Error copying to clipboard:', error);
+                    showCommandFallback(command);
+                });
             }
         });
 
@@ -556,16 +742,24 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Function to process a video element
     function processVideoElement(element) {
-        const videoInfo = extractVideoInfo(element);
+        debugLog('processVideoElement called with:', element.tagName, element.className);
+        let videoInfo;
+        try {
+            videoInfo = extractVideoInfo(element);
+            debugLog('extractVideoInfo returned:', videoInfo);
+        } catch (error) {
+            console.error('Error in extractVideoInfo:', error);
+            return;
+        }
         if (!videoInfo) {
             // Debug: log elements that might be videos but weren't detected
             if (element.tagName === 'IFRAME') {
                 const src = element.getAttribute('src');
                 if (src && (src.includes('youtube.com') || src.includes('youtu.be'))) {
-                    console.log('YouTube iframe detected but no video ID extracted:', src);
+                    debugLog('YouTube iframe detected but no video ID extracted:', src);
                 }
             } else if (element.tagName === 'SHREDDIT-PLAYER-2') {
-                console.log('Reddit player detected but no video info extracted:', element);
+                debugLog('Reddit player detected but no video info extracted:', element);
             }
             return;
         }
@@ -574,11 +768,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (element.dataset.videoControlsAdded) return;
         element.dataset.videoControlsAdded = 'true';
 
-        console.log('Video detected:', videoInfo, 'from element:', element);
+        debugLog('Video detected:', videoInfo, 'from element:', element);
 
         // Handle Google Developers frame case
         if (videoInfo.type === 'google-developers-frame') {
-            console.log('Processing Google Developers frame:', videoInfo.frameUrl);
+            debugLog('Processing Google Developers frame:', videoInfo.frameUrl);
             
             // For Google Developers frames, we need to wait for the frame to load and then check its content
             // We'll try to detect the actual video ID from the frame content after it loads
@@ -592,7 +786,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             if (frameSrc) {
                                 const match = frameSrc.match(/(?:youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
                                 if (match) {
-                                    console.log('Found actual YouTube video ID in frame:', match[1]);
+                                    debugLog('Found actual YouTube video ID in frame:', match[1]);
                                     
                                     // Only create control panel if we found a real video ID
                                     const actualVideoInfo = {
@@ -612,7 +806,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         });
                     }
                 } catch (error) {
-                    console.log('Could not access frame content due to CORS:', error);
+                    debugLog('Could not access frame content due to CORS:', error);
                 }
             }, 2000);
             
@@ -637,35 +831,85 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
     }
 
+    // Function to recursively scan for videos, including shadow DOM
+    function scanForVideosRecursive(root) {
+        const videos = [];
+        let shadowRootCount = 0;
+        
+        // Function to traverse shadow DOM
+        function traverse(element) {
+            // Check if element has shadow root
+            if (element.shadowRoot) {
+                shadowRootCount++;
+                debugLog(`Found shadow root #${shadowRootCount} in:`, element.tagName, element.className, element.getAttribute('data-testid'));
+                traverse(element.shadowRoot);
+            }
+            
+            // Look for video elements in current scope
+            const videoElements = element.querySelectorAll('video');
+            videoElements.forEach(video => {
+                debugLog('Found video in shadow DOM:', video);
+                debugLog('Video attributes:', {
+                    src: video.getAttribute('src'),
+                    poster: video.getAttribute('poster'),
+                    preload: video.getAttribute('preload'),
+                    tabindex: video.getAttribute('tabindex')
+                });
+                videos.push(video);
+            });
+            
+            // Look for other video-related elements
+            const otherVideoElements = element.querySelectorAll('lite-youtube, iframe, shreddit-embed, shreddit-player-2, shreddit-player');
+            otherVideoElements.forEach(el => {
+                debugLog('Found video-related element in shadow DOM:', el.tagName, el.className);
+                videos.push(el);
+            });
+            
+            // Recursively check for more shadow roots
+            const allElements = element.querySelectorAll('*');
+            allElements.forEach(el => {
+                if (el.shadowRoot) {
+                    traverse(el.shadowRoot);
+                }
+            });
+        }
+        
+        traverse(root);
+        debugLog(`Shadow DOM traversal complete. Found ${shadowRootCount} shadow roots and ${videos.length} video elements.`);
+        return videos;
+    }
+
     // Function to scan for videos
     function scanForVideos() {
-        console.log('Scanning for videos...');
+        debugLog('=== STARTING VIDEO SCAN ===');
+        debugLog('Current URL:', window.location.href);
+        debugLog('Is Reddit:', window.location.hostname.includes('reddit.com'));
         
         // Look for lite-youtube elements
         const liteYoutubeElements = document.querySelectorAll('lite-youtube');
-        console.log('Found lite-youtube elements:', liteYoutubeElements.length);
+        debugLog('Found lite-youtube elements:', liteYoutubeElements.length);
         liteYoutubeElements.forEach(processVideoElement);
 
         // Look for iframe elements with YouTube URLs
         const iframeElements = document.querySelectorAll('iframe');
-        console.log('Found iframe elements:', iframeElements.length);
+        debugLog('Found iframe elements:', iframeElements.length);
         iframeElements.forEach((iframe, index) => {
             const src = iframe.getAttribute('src');
-            console.log(`Iframe ${index} src:`, src);
+            debugLog(`Iframe ${index} src:`, src);
             processVideoElement(iframe);
         });
 
         // Look for shreddit-embed elements
         const shredditEmbedElements = document.querySelectorAll('shreddit-embed');
-        console.log('Found shreddit-embed elements:', shredditEmbedElements.length);
+        debugLog('Found shreddit-embed elements:', shredditEmbedElements.length);
         shredditEmbedElements.forEach(processVideoElement);
 
         // Look for Reddit video players - try multiple possible selectors
         const redditPlayerElements = document.querySelectorAll('shreddit-player-2, shreddit-player, [data-testid*="video"], video');
-        console.log('Found Reddit video elements:', redditPlayerElements.length);
+        debugLog('Found Reddit video elements:', redditPlayerElements.length);
         redditPlayerElements.forEach((element, index) => {
-            console.log(`Reddit video element ${index}:`, element.tagName, element.className, element.getAttribute('data-testid'));
-            console.log('Element attributes:', {
+            debugLog(`Reddit video element ${index}:`, element.tagName, element.className, element.getAttribute('data-testid'));
+            debugLog('Element attributes:', {
                 'packaged-media-json': element.getAttribute('packaged-media-json'),
                 'src': element.getAttribute('src'),
                 'data-testid': element.getAttribute('data-testid'),
@@ -676,17 +920,31 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             
             // Additional debugging for shreddit-player-2 elements
             if (element.tagName === 'SHREDDIT-PLAYER-2') {
-                console.log('SHREDDIT-PLAYER-2 found with src:', element.getAttribute('src'));
-                console.log('SHREDDIT-PLAYER-2 poster:', element.getAttribute('poster'));
-                console.log('SHREDDIT-PLAYER-2 preview:', element.getAttribute('preview'));
+                debugLog('SHREDDIT-PLAYER-2 found with src:', element.getAttribute('src'));
+                debugLog('SHREDDIT-PLAYER-2 poster:', element.getAttribute('poster'));
+                debugLog('SHREDDIT-PLAYER-2 preview:', element.getAttribute('preview'));
             }
             
-            processVideoElement(element);
+            debugLog('About to call processVideoElement for element:', element.tagName);
+            try {
+                processVideoElement(element);
+                debugLog('processVideoElement call completed successfully');
+            } catch (error) {
+                console.error('Error calling processVideoElement:', error);
+            }
         });
+        
+        // Scan for videos in shadow DOM
+        debugLog('Scanning for videos in shadow DOM...');
+        const shadowVideos = scanForVideosRecursive(document.body);
+        debugLog('Found videos in shadow DOM:', shadowVideos.length);
+        shadowVideos.forEach(processVideoElement);
+        
+        debugLog('=== VIDEO SCAN COMPLETE ===');
 
         // Additional debugging for Reddit-specific elements
         if (window.location.hostname.includes('reddit.com')) {
-            console.log('On Reddit - looking for video-related elements...');
+            debugLog('On Reddit - looking for video-related elements...');
             
             // Look for any elements that might contain video data
             const allElements = document.querySelectorAll('*');
@@ -706,18 +964,74 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 return false;
             });
             
-            console.log('Found video-related elements:', videoRelatedElements.length);
+            debugLog('Found video-related elements:', videoRelatedElements.length);
             videoRelatedElements.slice(0, 10).forEach((el, index) => {
-                console.log(`Video-related element ${index}:`, el.tagName, el.className, el.getAttribute('data-testid'));
+                debugLog(`Video-related element ${index}:`, el.tagName, el.className, el.getAttribute('data-testid'));
+            });
+            
+            // Additional Reddit-specific scanning for async-loaded content
+            // Look for shreddit-async-loader elements that might contain videos
+            const asyncLoaders = document.querySelectorAll('shreddit-async-loader');
+            debugLog('Found shreddit-async-loader elements:', asyncLoaders.length);
+            asyncLoaders.forEach((loader, index) => {
+                debugLog(`Async loader ${index}:`, loader.getAttribute('bundlename'));
+                // Check if this loader contains video elements
+                const videoElements = loader.querySelectorAll('shreddit-player-2, shreddit-player, video');
+                if (videoElements.length > 0) {
+                    debugLog(`Async loader ${index} contains ${videoElements.length} video elements`);
+                    videoElements.forEach(processVideoElement);
+                }
+            });
+            
+            // Look for elements with post-media-container slot (Reddit's video container)
+            const mediaContainers = document.querySelectorAll('[slot="post-media-container"]');
+            debugLog('Found post-media-container elements:', mediaContainers.length);
+            mediaContainers.forEach((container, index) => {
+                debugLog(`Media container ${index}:`, container.className);
+                const videoElements = container.querySelectorAll('shreddit-player-2, shreddit-player, video');
+                if (videoElements.length > 0) {
+                    debugLog(`Media container ${index} contains ${videoElements.length} video elements`);
+                    videoElements.forEach(processVideoElement);
+                }
+            });
+            
+            // Look for shreddit-post elements with video type
+            const videoPosts = document.querySelectorAll('shreddit-post[post-type="video"]');
+            debugLog('Found video posts:', videoPosts.length);
+            videoPosts.forEach((post, index) => {
+                debugLog(`Video post ${index}:`, post.getAttribute('domain'), post.getAttribute('post-id'));
+                // Check if this post contains video elements
+                const videoElements = post.querySelectorAll('shreddit-player-2, shreddit-player, video');
+                if (videoElements.length > 0) {
+                    debugLog(`Video post ${index} contains ${videoElements.length} video elements`);
+                    videoElements.forEach(processVideoElement);
+                }
+            });
+            
+            // Look for shreddit-async-loader with specific bundlename for video player
+            const videoPlayerLoaders = document.querySelectorAll('shreddit-async-loader[bundlename="shreddit_player_2_loader"]');
+            debugLog('Found video player loaders:', videoPlayerLoaders.length);
+            videoPlayerLoaders.forEach((loader, index) => {
+                debugLog(`Video player loader ${index}:`, loader);
+                // Check if this loader contains video elements
+                const videoElements = loader.querySelectorAll('shreddit-player-2, shreddit-player, video');
+                if (videoElements.length > 0) {
+                    debugLog(`Video player loader ${index} contains ${videoElements.length} video elements`);
+                    videoElements.forEach(processVideoElement);
+                }
             });
         }
     }
 
     // Initial scan
+    debugLog('Starting initial video scan...');
     scanForVideos();
+    debugLog('Initial video scan completed.');
 
     // Set up mutation observer to handle dynamically added content
     const observer = new MutationObserver((mutations) => {
+        let shouldRescan = false;
+        
         mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
                 if (node.nodeType === Node.ELEMENT_NODE) {
@@ -725,27 +1039,123 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     if (node.tagName === 'LITE-YOUTUBE' || 
                         node.tagName === 'IFRAME' || 
                         node.tagName === 'SHREDDIT-EMBED' ||
-                        node.tagName === 'SHREDDIT-PLAYER-2') {
+                        node.tagName === 'SHREDDIT-PLAYER-2' ||
+                        node.tagName === 'SHREDDIT-PLAYER' ||
+                        node.tagName === 'VIDEO') {
+                        debugLog('Mutation observer found video element:', node.tagName);
                         processVideoElement(node);
                     }
                     
                     // Check for video elements within the added node
-                    const videoElements = node.querySelectorAll && node.querySelectorAll('lite-youtube, iframe, shreddit-embed, shreddit-player-2');
-                    if (videoElements) {
+                    const videoElements = node.querySelectorAll && node.querySelectorAll('lite-youtube, iframe, shreddit-embed, shreddit-player-2, shreddit-player, video');
+                    if (videoElements && videoElements.length > 0) {
+                        debugLog('Mutation observer found video elements within node:', videoElements.length);
                         videoElements.forEach(processVideoElement);
+                    }
+                    
+                    // For Reddit, also check for any elements that might be containers for videos
+                    if (window.location.hostname.includes('reddit.com')) {
+                        if (node.tagName === 'DIV' || node.tagName === 'ARTICLE' || node.tagName === 'SECTION') {
+                            // Check if this element contains video-related attributes or classes
+                            const hasVideoAttributes = node.getAttribute('data-testid')?.includes('video') ||
+                                                     node.className?.includes('video') ||
+                                                     node.className?.includes('media') ||
+                                                     node.className?.includes('player');
+                            
+                            if (hasVideoAttributes) {
+                                debugLog('Mutation observer found potential video container:', node.tagName, node.className, node.getAttribute('data-testid'));
+                                shouldRescan = true;
+                            }
+                        }
+                        
+                        // Check for Reddit-specific video elements
+                        if (node.tagName === 'SHREDDIT-POST' && node.getAttribute('post-type') === 'video') {
+                            debugLog('Mutation observer found Reddit video post:', node.getAttribute('post-id'), node.getAttribute('domain'));
+                            shouldRescan = true;
+                        }
+                        
+                        if (node.tagName === 'SHREDDIT-ASYNC-LOADER' && node.getAttribute('bundlename') === 'shreddit_player_2_loader') {
+                            debugLog('Mutation observer found Reddit video player loader');
+                            shouldRescan = true;
+                        }
                     }
                 }
             });
         });
+        
+        // If we found potential video containers, do a full rescan after a short delay
+        if (shouldRescan) {
+            setTimeout(() => {
+                debugLog('Doing full rescan due to potential video container detection');
+                scanForVideos();
+            }, 500);
+        }
     });
 
     // Start observing
     observer.observe(document.body, {
         childList: true,
-        subtree: true
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src', 'data-testid', 'class']
     });
 
-    // Re-scan periodically to catch any missed videos
-    setInterval(scanForVideos, 2000);
+    // Re-scan periodically to catch any missed videos (with intelligent stopping)
+    let periodicScanCount = 0;
+    let lastVideoCount = 0;
+    const maxPeriodicScans = window.location.hostname.includes('reddit.com') ? 30 : 15; // More scans for Reddit
+    const scanInterval = window.location.hostname.includes('reddit.com') ? 1000 : 2000;
+    
+    const periodicInterval = setInterval(() => {
+        try {
+            const beforeCount = document.querySelectorAll('[data-video-controls-added]').length;
+            scanForVideos();
+            const afterCount = document.querySelectorAll('[data-video-controls-added]').length;
+            
+            periodicScanCount++;
+            
+            // Stop periodic scanning if:
+            // 1. We've reached max scans, OR
+            // 2. No new videos found in last 3 scans, OR  
+            // 3. No videos found at all after 5 scans
+            if (periodicScanCount >= maxPeriodicScans || 
+                (afterCount === lastVideoCount && periodicScanCount > 3) ||
+                (afterCount === 0 && periodicScanCount > 5)) {
+                debugLog(`Stopping periodic scanning after ${periodicScanCount} scans. Found ${afterCount} videos total.`);
+                clearInterval(periodicInterval);
+            }
+            
+            lastVideoCount = afterCount;
+            
+            // Log progress every 5 scans
+            if (periodicScanCount % 5 === 0) {
+                debugLog(`Periodic scan ${periodicScanCount}/${maxPeriodicScans}: Found ${afterCount} videos total`);
+            }
+        } catch (error) {
+            console.error('Error during periodic scan:', error);
+        }
+    }, scanInterval);
+    
+    // Additional aggressive scanning for Reddit video posts
+    if (window.location.hostname.includes('reddit.com')) {
+        debugLog('Setting up aggressive Reddit video scanning...');
+        // Scan more frequently for the first 10 seconds after page load
+        let aggressiveScanCount = 0;
+        const aggressiveInterval = setInterval(() => {
+            debugLog('Aggressive Reddit video scanning, attempt:', aggressiveScanCount + 1);
+            try {
+                scanForVideos();
+            } catch (error) {
+                console.error('Error during aggressive scan:', error);
+            }
+            aggressiveScanCount++;
+            if (aggressiveScanCount >= 10) {
+                clearInterval(aggressiveInterval);
+                debugLog('Stopping aggressive Reddit video scanning');
+            }
+        }, 500);
+    }
+
+    debugLog('=== EXTENSION SETUP COMPLETE ===');
 
 })();

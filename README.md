@@ -2,7 +2,7 @@
 
 A Safari extension that automatically detects YouTube videos on web pages and provides convenient controls for opening the video in a new tab and for generating the command-line for downloading videos (with yt-dlp or curl where appropriate).
 
-This extension was vibe-coded with Cursor as a lark. Most of this README too. I needed this and threw a couple prompts at the problem and probably evaporated away the amount of water needed to slake the thirst of a small country in the process, but I'm impressed things have gotten to the point where something that seems functional and is this complex can come out the other side. I wouldn't advise trusting this code to operate your pacemaker.
+This extension was vibe-coded with Cursor as a lark. Most of this README too. I needed this and threw a couple prompts at the problem and probably evaporated away the amount of water needed to slake the thirst of a small country in the process, but I'm impressed things have gotten to the point where something that seems functional and is this complex can come out the other side. I wouldn't advise trusting this code to operate heavy equipment or your pacemaker.
 
 ## Features
 
@@ -130,6 +130,26 @@ To modify the extension:
 - `manifest.json`: Extension configuration
 - `popup.html/js/css`: Extension popup interface
 - `_locales/en/messages.json`: Localization strings
+
+## Changelog
+
+### v1.2.0 (Latest)
+- **🎯 Enhanced Reddit Video Detection**: Improved detection of Reddit videos including Shadow DOM traversal
+- **🔧 Debug Mode**: Added optional debug logging that can be toggled in extension settings (off by default)
+- **⚡ Smart Scanning**: Periodic scanning now stops automatically when no new videos are found, improving performance
+- **🎨 Improved UI**: Redesigned command modal with modern styling and "Copy & Close" functionality
+- **🐛 Bug Fixes**: Fixed issues with Reddit HLS URLs containing query parameters
+- **📱 Better UX**: More responsive video detection for asynchronously loaded content
+
+### v1.1.0
+- **🔗 Reddit Video Support**: Added detection and download support for Reddit videos
+- **🍪 Cookie Configuration**: Added settings to specify which browser's cookies to use
+- **📋 Enhanced Download**: Improved command generation for different video types
+
+### v1.0.0
+- **🎬 YouTube Detection**: Initial support for YouTube video detection
+- **📥 Download Commands**: yt-dlp command generation for YouTube videos
+- **🔗 Direct Links**: Quick access to YouTube video pages
 
 ## License
 
