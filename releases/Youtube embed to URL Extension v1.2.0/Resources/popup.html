@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="popup.css">
+    <script type="module" src="popup.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Video Controller</h1>
+        <p>This extension automatically detects YouTube videos on web pages and adds controls above each video.</p>
+        
+        <div class="features">
+            <h3>Features:</h3>
+            <ul>
+                <li>📺 Shows YouTube video ID</li>
+                <li>🔗 Direct link to YouTube</li>
+                <li>⬇️ Download with yt-dlp command</li>
+            </ul>
+        </div>
+        
+        <div class="supported-formats">
+            <h3>Supported Formats:</h3>
+            <ul>
+                <li>lite-youtube elements</li>
+                <li>YouTube iframe embeds</li>
+                <li>shreddit-embed elements</li>
+            </ul>
+        </div>
+        
+        <div class="settings">
+            <h3>Settings:</h3>
+            <div class="setting-item">
+                <label for="cookies-browser">Cookies from browser:</label>
+                <select id="cookies-browser">
+                    <option value="safari">Safari</option>
+                    <option value="chrome">Chrome</option>
+                    <option value="firefox">Firefox</option>
+                    <option value="edge">Edge</option>
+                    <option value="brave">Brave</option>
+                    <option value="chromium">Chromium</option>
+                    <option value="opera">Opera</option>
+                    <option value="vivaldi">Vivaldi</option>
+                    <option value="whale">Whale</option>
+                    <option value="none">None</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label for="debug-mode">
+                    <input type="checkbox" id="debug-mode">
+                    Show debugging info in console
+                </label>
+            </div>
+            <button id="save-settings" class="save-button">Save Settings</button>
+        </div>
+        
+        <div class="status">
+            <p id="status-text">Extension is active on this page</p>
+        </div>
+    </div>
+</body>
+</html>

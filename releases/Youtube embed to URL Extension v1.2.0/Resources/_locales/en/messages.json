@@ -1,0 +1,10 @@
+{
+    "extension_name": {
+        "message": "YouTube Video Controller",
+        "description": "The display name for the extension."
+    },
+    "extension_description": {
+        "message": "Detects YouTube videos on web pages and provides controls to view video ID, open on YouTube, and download with yt-dlp.",
+        "description": "Description of what the extension does."
+    }
+}
