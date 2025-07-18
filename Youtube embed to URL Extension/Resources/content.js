@@ -169,9 +169,12 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (element.tagName === 'IFRAME') {
             const src = element.getAttribute('src');
             if (src) {
+                console.log('Checking iframe src:', src);
+                
                 // Enhanced regex to handle various YouTube embed URLs with query parameters
                 const match = src.match(/(?:youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\?|$)/);
                 if (match) {
+                    console.log('YouTube video ID found in iframe src:', match[1]);
                     return {
                         type: 'youtube',
                         videoId: match[1]
@@ -181,9 +184,20 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 // Fallback: try without requiring query parameter separator
                 const fallbackMatch = src.match(/(?:youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
                 if (fallbackMatch) {
+                    console.log('YouTube video ID found in iframe src (fallback):', fallbackMatch[1]);
                     return {
                         type: 'youtube',
                         videoId: fallbackMatch[1]
+                    };
+                }
+                
+                // Check for Google Developers frame URLs that might contain YouTube players
+                if (src.includes('developers.google.com/frame/youtube/')) {
+                    console.log('Google Developers YouTube frame detected:', src);
+                    // For Google Developers frames, we'll need to check the content after it loads
+                    return {
+                        type: 'google-developers-frame',
+                        frameUrl: src
                     };
                 }
             }
@@ -522,6 +536,52 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         console.log('Video detected:', videoInfo, 'from element:', element);
 
+        // Handle Google Developers frame case
+        if (videoInfo.type === 'google-developers-frame') {
+            console.log('Processing Google Developers frame:', videoInfo.frameUrl);
+            
+            // For Google Developers frames, we need to wait for the frame to load and then check its content
+            // The default video ID for the YouTube Player Demo is 'M7lc1UVf-VE'
+            const defaultVideoId = 'M7lc1UVf-VE';
+            
+            // Create control panel with the default video ID
+            const controlPanel = createControlPanel({
+                type: 'youtube',
+                videoId: defaultVideoId
+            });
+            
+            // Insert the control panel
+            element.parentNode.insertBefore(controlPanel, element);
+            
+            // Also try to detect the actual video ID from the frame content after it loads
+            setTimeout(() => {
+                try {
+                    const frameDoc = element.contentDocument || element.contentWindow.document;
+                    if (frameDoc) {
+                        const frameIframes = frameDoc.querySelectorAll('iframe');
+                        frameIframes.forEach(frameIframe => {
+                            const frameSrc = frameIframe.getAttribute('src');
+                            if (frameSrc) {
+                                const match = frameSrc.match(/(?:youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                                if (match) {
+                                    console.log('Found actual YouTube video ID in frame:', match[1]);
+                                    // Update the control panel with the actual video ID
+                                    const videoIdDisplay = controlPanel.querySelector('.video-id');
+                                    if (videoIdDisplay) {
+                                        videoIdDisplay.textContent = `Video ID: ${match[1]}`;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.log('Could not access frame content due to CORS:', error);
+                }
+            }, 2000);
+            
+            return;
+        }
+
         // Create and insert control panel
         const controlPanel = createControlPanel(videoInfo);
         
@@ -542,20 +602,30 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Function to scan for videos
     function scanForVideos() {
+        console.log('Scanning for videos...');
+        
         // Look for lite-youtube elements
         const liteYoutubeElements = document.querySelectorAll('lite-youtube');
+        console.log('Found lite-youtube elements:', liteYoutubeElements.length);
         liteYoutubeElements.forEach(processVideoElement);
 
         // Look for iframe elements with YouTube URLs
         const iframeElements = document.querySelectorAll('iframe');
-        iframeElements.forEach(processVideoElement);
+        console.log('Found iframe elements:', iframeElements.length);
+        iframeElements.forEach((iframe, index) => {
+            const src = iframe.getAttribute('src');
+            console.log(`Iframe ${index} src:`, src);
+            processVideoElement(iframe);
+        });
 
         // Look for shreddit-embed elements
         const shredditEmbedElements = document.querySelectorAll('shreddit-embed');
+        console.log('Found shreddit-embed elements:', shredditEmbedElements.length);
         shredditEmbedElements.forEach(processVideoElement);
 
         // Look for Reddit video players
         const redditPlayerElements = document.querySelectorAll('shreddit-player-2');
+        console.log('Found shreddit-player-2 elements:', redditPlayerElements.length);
         redditPlayerElements.forEach(processVideoElement);
     }
 
