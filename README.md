@@ -1,9 +1,9 @@
 
 <img src="Youtube embed to URL Extension/Resources/images/icon-128.png" alt="Extension Icon" align="right" width="128">
 
-# YouTube Video de-embedder/Downloader Safari Extension
+# Embedded Video Detector Safari Extension
 
-A Safari extension that automatically detects YouTube videos on web pages and provides convenient controls for opening the video in a new tab and for generating the command-line for downloading videos (with yt-dlp or curl where appropriate).
+A Safari extension that automatically detects embedded videos (YouTube, Reddit, and more) on web pages and provides convenient controls for opening the video in a new tab and for generating the command-line for downloading videos (with yt-dlp or curl where appropriate).
 
   <img src="Youtube_embed_to_URL_v2.jpg" align="right" alt="YouTube Video Detector Extension Demo" width="350" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin: 20px 0;">
 
@@ -11,14 +11,14 @@ This extension was vibe-coded with Cursor as a lark. Most of this README too. I 
 
 ## Features
 
-- **Automatic Detection**: Detects YouTube videos in various formats:
-  - `lite-youtube` elements
-  - YouTube iframe embeds
-  - `shreddit-embed` elements with YouTube content
+- **Automatic Detection**: Detects embedded videos in various formats:
+  - YouTube videos (`lite-youtube` elements, iframe embeds)
+  - Reddit videos (`shreddit-player-2`, `shreddit-player`, `video` elements)
+  - Other embedded video formats
 
-- **Video Information**: Displays the YouTube video ID above each detected video
+- **Video Information**: Displays video details (ID, type, source) above each detected video
 
-- **Direct YouTube Link**: Provides a button to open the video directly on YouTube
+- **Direct Video Links**: Provides buttons to open videos directly on their source platforms
 
 - **Download with yt-dlp**: Copies yt-dlp command to clipboard for YouTube videos
 - **Download with curl**: Copies curl command to clipboard for Reddit videos
@@ -32,8 +32,8 @@ This extension was vibe-coded with Cursor as a lark. Most of this README too. I 
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/czyz/Safari-Embedded-Video-Downloader-Extension.git
-   cd Safari-Embedded-Video-Downloader-Extension
+   git clone https://github.com/czyz/embedded-video-detector.git
+   cd embedded-video-detector
    ```
 2. Open the project in Xcode by double-clicking `Youtube embed to URL.xcodeproj`
 3. Build and run the project (⌘+R)
