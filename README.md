@@ -21,10 +21,35 @@ This extension was vibe-coded with Cursor as a lark. Most of this README too. I 
 
 ## Installation
 
-1. Open Safari and go to **Safari > Settings > Extensions**
-2. Click **Add Extension...**
-3. Navigate to this folder and select it
-4. Enable the extension
+### Option 1: Download from Releases (Recommended)
+
+1. Go to the [Releases page](https://github.com/czyz/Safari-Embedded-Video-Downloader-Extension/releases)
+2. Download the latest release (e.g., `safari-video-extension-v1.1.0.zip`)
+3. Extract the downloaded zip file
+4. Open Safari and go to **Safari > Settings > Extensions**
+5. Click **Add Extension...**
+6. Navigate to the extracted folder and select it
+7. Enable the extension
+
+### Option 2: Build from Source
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/czyz/Safari-Embedded-Video-Downloader-Extension.git
+   cd Safari-Embedded-Video-Downloader-Extension
+   ```
+2. Open the project in Xcode by double-clicking `Youtube embed to URL.xcodeproj`
+3. Build the project (⌘+B)
+4. Open Safari and go to **Safari > Settings > Extensions**
+5. Click **Add Extension...**
+6. Navigate to the project folder and select it
+7. Enable the extension
+
+### System Requirements
+
+- macOS 12.0 or later
+- Safari 15.0 or later
+- For video downloads: `yt-dlp` (install via `brew install yt-dlp`)
 
 ## Usage
 
