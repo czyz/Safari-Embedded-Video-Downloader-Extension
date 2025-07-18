@@ -141,7 +141,12 @@ To modify the extension:
 
 ## Changelog
 
-### v1.3.1 (Latest)
+### v1.3.2 (Latest)
+- **🐛 Bug Fix**: Fixed duplicate control panels appearing on Reddit pages by implementing content-based duplicate prevention
+- **🎯 Enhanced Duplicate Prevention**: Added robust video identifier system to prevent multiple UI elements for the same video content
+- **🔧 Improved Content Tracking**: Better tracking of processed video content across different element types
+
+### v1.3.1
 - **🐛 Bug Fix**: Fixed false positive video detection on non-video content (like background videos on Cursor.com)
 - **🎯 Improved Reddit Detection**: Made Reddit video detection more specific to avoid matching decorative videos
 - **✅ Better Validation**: Added validation to only show control panels when meaningful video data is available

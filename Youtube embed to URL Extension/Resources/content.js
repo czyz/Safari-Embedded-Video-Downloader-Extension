@@ -30,7 +30,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     
     debugLog('=== EMBEDDED VIDEO DETECTOR EXTENSION LOADED ===');
-    debugLog('Extension version: 1.3.1');
+            debugLog('Extension version: 1.3.2');
     debugLog('Current page:', window.location.href);
     debugLog('User agent:', navigator.userAgent);
     debugLog('Native pages enabled:', nativePagesEnabled);
@@ -141,6 +141,38 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         
         debugLog('No Vimeo video ID found in page content');
         return null;
+    }
+    
+    // Function to generate a unique identifier for video content
+    function generateVideoIdentifier(videoInfo, element) {
+        let identifier = '';
+        
+        switch (videoInfo.type) {
+            case 'youtube':
+                identifier = `youtube-${videoInfo.videoId}`;
+                break;
+            case 'vimeo':
+                identifier = `vimeo-${videoInfo.videoId}`;
+                break;
+            case 'reddit':
+                // Use the video URL as identifier for Reddit videos
+                identifier = `reddit-${btoa(videoInfo.videoUrl).replace(/[^a-zA-Z0-9]/g, '')}`;
+                break;
+            case 'reddit-hls':
+                // Use the HLS URL as identifier
+                identifier = `reddit-hls-${btoa(videoInfo.hlsUrl).replace(/[^a-zA-Z0-9]/g, '')}`;
+                break;
+            case 'reddit-blob':
+                identifier = `reddit-blob-${videoInfo.videoId}`;
+                break;
+            default:
+                // Fallback: use element attributes to create a unique identifier
+                const elementId = element.getAttribute('id') || '';
+                const elementSrc = element.getAttribute('src') || '';
+                identifier = `unknown-${btoa(elementId + elementSrc).replace(/[^a-zA-Z0-9]/g, '')}`;
+        }
+        
+        return identifier;
     }
     
     // Function to check if video info contains meaningful data for user interaction
@@ -1199,8 +1231,16 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return;
         }
 
-        // Check if we've already added controls for this video
-        if (element.dataset.videoControlsAdded) return;
+        // Generate a unique identifier for this video based on its content
+        const videoIdentifier = generateVideoIdentifier(videoInfo, element);
+        
+        // Check if we've already added controls for this video content
+        if (document.querySelector(`[data-video-identifier="${videoIdentifier}"]`)) {
+            debugLog('Video controls already added for this content:', videoIdentifier);
+            return;
+        }
+        
+        // Mark this element as processed
         element.dataset.videoControlsAdded = 'true';
 
         debugLog('Video detected:', videoInfo, 'from element:', element);
@@ -1213,6 +1253,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         // Create and insert control panel
         const controlPanel = createControlPanel(videoInfo);
+        controlPanel.setAttribute('data-video-identifier', videoIdentifier);
         
         // For iframe videos (YouTube, Vimeo), try to insert before the video container
         if (element.tagName === 'IFRAME') {
