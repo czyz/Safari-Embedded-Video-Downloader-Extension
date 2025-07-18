@@ -73,7 +73,14 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "generateDownloadCommand") {
         const videoId = request.videoId;
         const cookiesBrowser = request.cookiesBrowser || 'safari';
-        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        const videoType = request.videoType || 'youtube';
+        
+        let videoUrl;
+        if (videoType === 'vimeo') {
+            videoUrl = `https://vimeo.com/${videoId}`;
+        } else {
+            videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        }
         
         // Build command with cookies argument before -o
         let command = `yt-dlp "${videoUrl}"`;

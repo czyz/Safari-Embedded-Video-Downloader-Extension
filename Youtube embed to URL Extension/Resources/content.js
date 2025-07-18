@@ -12,12 +12,15 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     // Debug logging function that checks settings
     let debugEnabled = false;
+    let nativePagesEnabled = false;
     
-    // Load debug setting
-    browser.storage.local.get(['debugMode']).then((result) => {
+    // Load settings
+    browser.storage.local.get(['debugMode', 'nativePages']).then((result) => {
         debugEnabled = result.debugMode || false;
+        nativePagesEnabled = result.nativePages || false;
     }).catch(() => {
         debugEnabled = false;
+        nativePagesEnabled = false;
     });
     
     function debugLog(...args) {
@@ -26,10 +29,208 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
     }
     
-    debugLog('=== YOUTUBE VIDEO DETECTOR EXTENSION LOADED ===');
-    debugLog('Extension version: 1.2.0');
+    debugLog('=== EMBEDDED VIDEO DETECTOR EXTENSION LOADED ===');
+    debugLog('Extension version: 1.3.0');
     debugLog('Current page:', window.location.href);
     debugLog('User agent:', navigator.userAgent);
+    debugLog('Native pages enabled:', nativePagesEnabled);
+    
+    // Function to extract video info from native video pages
+    function extractNativeVideoInfo() {
+        const url = window.location.href;
+        let videoInfo = null;
+        
+        // YouTube native page
+        if (url.includes('youtube.com/watch')) {
+            const match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+            if (match) {
+                videoInfo = {
+                    type: 'youtube',
+                    videoId: match[1]
+                };
+                debugLog('Native YouTube video detected:', videoInfo);
+            }
+        }
+        // Vimeo native page
+        else if (url.includes('vimeo.com/')) {
+            // Try multiple URL patterns for Vimeo
+            let match = url.match(/vimeo\.com\/(\d+)/);
+            if (!match) {
+                // Try channels format: vimeo.com/channels/CHANNELNAME/VIDEO_ID
+                match = url.match(/vimeo\.com\/channels\/[^\/]+\/(\d+)/);
+            }
+            if (!match) {
+                // Try groups format: vimeo.com/groups/GROUPNAME/VIDEO_ID
+                match = url.match(/vimeo\.com\/groups\/[^\/]+\/(\d+)/);
+            }
+            if (!match) {
+                // Try alternative patterns
+                match = url.match(/vimeo\.com\/video\/(\d+)/);
+            }
+            if (!match) {
+                // Try with query parameters
+                match = url.match(/vimeo\.com\/(\d+)(?:\?|$)/);
+            }
+            
+            if (match) {
+                videoInfo = {
+                    type: 'vimeo',
+                    videoId: match[1]
+                };
+                debugLog('Native Vimeo video detected from URL:', videoInfo);
+            } else {
+                // Fallback: try to extract video ID from page content
+                debugLog('Vimeo URL pattern not matched, trying to extract from page content');
+                const videoIdFromPage = extractVimeoVideoIdFromPage();
+                if (videoIdFromPage) {
+                    videoInfo = {
+                        type: 'vimeo',
+                        videoId: videoIdFromPage
+                    };
+                    debugLog('Native Vimeo video detected from page content:', videoInfo);
+                }
+            }
+        }
+        
+        return videoInfo;
+    }
+    
+    // Function to extract Vimeo video ID from page content
+    function extractVimeoVideoIdFromPage() {
+        debugLog('Extracting Vimeo video ID from page content...');
+        
+        // Strategy 1: Look for elements with video ID in their ID attribute
+        const elementsWithVideoId = document.querySelectorAll('[id*="clip_"], [id*="player"], [class*="player"]');
+        for (const element of elementsWithVideoId) {
+            const id = element.getAttribute('id');
+            if (id && /^\d+$/.test(id)) {
+                debugLog('Found Vimeo video ID in element ID:', id);
+                return id;
+            }
+            
+            // Check for clip_VIDEO_ID pattern
+            const clipMatch = id?.match(/clip_(\d+)/);
+            if (clipMatch) {
+                debugLog('Found Vimeo video ID in clip ID:', clipMatch[1]);
+                return clipMatch[1];
+            }
+        }
+        
+        // Strategy 2: Look for data attributes that might contain video ID
+        const dataElements = document.querySelectorAll('[data-config-url], [data-player]');
+        for (const element of dataElements) {
+            const configUrl = element.getAttribute('data-config-url');
+            if (configUrl) {
+                const match = configUrl.match(/player\.vimeo\.com\/video\/(\d+)/);
+                if (match) {
+                    debugLog('Found Vimeo video ID in data-config-url:', match[1]);
+                    return match[1];
+                }
+            }
+        }
+        
+        // Strategy 3: Look for any element with a numeric ID that might be a video ID
+        const allElements = document.querySelectorAll('*');
+        for (const element of allElements) {
+            const id = element.getAttribute('id');
+            if (id && /^\d{7,}$/.test(id)) { // Vimeo IDs are typically 7+ digits
+                debugLog('Found potential Vimeo video ID in element ID:', id);
+                return id;
+            }
+        }
+        
+        debugLog('No Vimeo video ID found in page content');
+        return null;
+    }
+    
+    // Function to wait for YouTube elements to be properly loaded
+    function waitForYouTubeElements(videoInfo) {
+        debugLog('Waiting for YouTube elements to load...');
+        
+        const maxAttempts = 20; // Try for up to 10 seconds (20 * 500ms)
+        let attempts = 0;
+        
+        const checkForElements = () => {
+            attempts++;
+            debugLog(`YouTube element check attempt ${attempts}/${maxAttempts}`);
+            
+            // Look for the proper YouTube page structure
+            const playerDiv = document.querySelector('#player');
+            const primaryInner = document.querySelector('#primary-inner');
+            
+            if (playerDiv && primaryInner) {
+                debugLog('YouTube elements found, creating control panel');
+                
+                // Check if we've already added controls
+                if (document.querySelector('[data-native-video-controls-added]')) {
+                    debugLog('Native video controls already added');
+                    return;
+                }
+                
+                // Create and insert control panel
+                const controlPanel = createControlPanel(videoInfo);
+                primaryInner.insertBefore(controlPanel, primaryInner.firstChild);
+                
+                // Mark that we've added native video controls
+                document.body.setAttribute('data-native-video-controls-added', 'true');
+                debugLog('Native YouTube video control panel added');
+            } else if (attempts < maxAttempts) {
+                // Try again in 500ms
+                setTimeout(checkForElements, 500);
+            } else {
+                debugLog('YouTube elements not found after maximum attempts, trying fallback strategies');
+                addYouTubeFallbackControls(videoInfo);
+            }
+        };
+        
+        // Start checking
+        checkForElements();
+    }
+    
+    // Function to wait for Vimeo elements to be properly loaded
+    function waitForVimeoElements(videoInfo) {
+        debugLog('Waiting for Vimeo elements to load...');
+        
+        const maxAttempts = 20; // Try for up to 10 seconds (20 * 500ms)
+        let attempts = 0;
+        
+        const checkForElements = () => {
+            attempts++;
+            debugLog(`Vimeo element check attempt ${attempts}/${maxAttempts}`);
+            
+            const videoContainer = document.querySelector('.vp-player, .vp-video-wrapper, .vp-preview');
+            
+            if (videoContainer) {
+                debugLog('Vimeo elements found, creating control panel');
+                
+                // Check if we've already added controls
+                if (document.querySelector('[data-native-video-controls-added]')) {
+                    debugLog('Native video controls already added');
+                    return;
+                }
+                
+                // Create and insert control panel
+                const controlPanel = createControlPanel(videoInfo);
+                videoContainer.parentElement.insertBefore(controlPanel, videoContainer.parentElement.firstChild);
+                
+                // Mark that we've added native video controls
+                document.body.setAttribute('data-native-video-controls-added', 'true');
+                debugLog('Native Vimeo video control panel added');
+            } else if (attempts < maxAttempts) {
+                // Try again in 500ms
+                setTimeout(checkForElements, 500);
+            } else {
+                debugLog('Vimeo elements not found after maximum attempts, using fallback');
+                // Fallback: try to add to body
+                const controlPanel = createControlPanel(videoInfo);
+                document.body.insertBefore(controlPanel, document.body.firstChild);
+                document.body.setAttribute('data-native-video-controls-added', 'true');
+            }
+        };
+        
+        // Start checking
+        checkForElements();
+    }
 
     // Function to copy text to clipboard
     function copyToClipboard(text) {
@@ -303,14 +504,21 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     };
                 }
                 
+                // Check for Vimeo iframe
+                const vimeoMatch = src.match(/player\.vimeo\.com\/video\/(\d+)/);
+                if (vimeoMatch) {
+                    debugLog('Vimeo video ID found in iframe src:', vimeoMatch[1]);
+                    return {
+                        type: 'vimeo',
+                        videoId: vimeoMatch[1]
+                    };
+                }
+                
                 // Check for Google Developers frame URLs that might contain YouTube players
                 if (src.includes('developers.google.com/frame/youtube/')) {
-                    debugLog('Google Developers YouTube frame detected:', src);
-                    // For Google Developers frames, we'll need to check the content after it loads
-                    return {
-                        type: 'google-developers-frame',
-                        frameUrl: src
-                    };
+                    debugLog('Google Developers YouTube frame detected (skipping due to CORS):', src);
+                    // Skip Google Developers frames since they're cross-origin and we can't access their contents
+                    return null;
                 }
             }
         }
@@ -476,6 +684,8 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             align-items: center;
             gap: 8px;
             flex-wrap: wrap;
+            position: relative;
+            z-index: 999999;
         `;
 
         const videoIdDisplay = document.createElement('span');
@@ -485,14 +695,19 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             margin-right: auto;
         `;
         
+        // Check if we're on a native page
+        const isNativePage = window.location.hostname.includes('youtube.com') || window.location.hostname.includes('vimeo.com');
+        
         if (videoInfo.type === 'youtube') {
-            videoIdDisplay.textContent = `YouTube ID: ${videoInfo.videoId}`;
+            videoIdDisplay.textContent = isNativePage ? `Video ID: ${videoInfo.videoId}` : `YouTube ID: ${videoInfo.videoId}`;
         } else if (videoInfo.type === 'reddit') {
             videoIdDisplay.textContent = `Reddit ${videoInfo.resolution}`;
         } else if (videoInfo.type === 'reddit-hls') {
             videoIdDisplay.textContent = 'Reddit HLS Video';
         } else if (videoInfo.type === 'reddit-blob') {
             videoIdDisplay.textContent = `Reddit Video (${videoInfo.videoId})`;
+        } else if (videoInfo.type === 'vimeo') {
+            videoIdDisplay.textContent = isNativePage ? `Video ID: ${videoInfo.videoId}` : `Vimeo (${videoInfo.videoId})`;
         }
 
         // View button (YouTube or Reddit)
@@ -518,10 +733,12 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         `;
         
         if (videoInfo.type === 'youtube') {
-            viewButton.textContent = 'YouTube';
-            viewButton.addEventListener('click', () => {
-                window.open(`https://www.youtube.com/watch?v=${videoInfo.videoId}`, '_blank');
-            });
+            if (!isNativePage) {
+                viewButton.textContent = 'YouTube';
+                viewButton.addEventListener('click', () => {
+                    window.open(`https://www.youtube.com/watch?v=${videoInfo.videoId}`, '_blank');
+                });
+            }
         } else if (videoInfo.type === 'reddit') {
             viewButton.textContent = 'View';
             viewButton.addEventListener('click', () => {
@@ -539,6 +756,13 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 const redditUrl = `https://v.redd.it/${videoInfo.videoId}`;
                 window.open(redditUrl, '_blank');
             });
+        } else if (videoInfo.type === 'vimeo') {
+            if (!isNativePage) {
+                viewButton.textContent = 'Vimeo';
+                viewButton.addEventListener('click', () => {
+                    window.open(`https://vimeo.com/${videoInfo.videoId}`, '_blank');
+                });
+            }
         }
         
         viewButton.addEventListener('mouseenter', () => {
@@ -687,6 +911,77 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     console.error('Error generating command:', error);
                     alert('Failed to generate download command');
                 });
+            } else if (videoInfo.type === 'vimeo') {
+                // Handle Vimeo video download (similar to YouTube)
+                browser.storage.local.get(['cookiesBrowser']).then((result) => {
+                    const cookiesBrowser = result.cookiesBrowser || 'safari'; // Default to safari
+                    
+                    // Generate command using background script
+                    browser.runtime.sendMessage({
+                        action: 'generateDownloadCommand',
+                        videoId: videoInfo.videoId,
+                        cookiesBrowser: cookiesBrowser,
+                        videoType: 'vimeo'
+                    }).then((response) => {
+                        if (response.success) {
+                            const command = response.command;
+                            
+                            // Copy command to clipboard using content script method
+                            copyToClipboard(command).then((success) => {
+                                if (success) {
+                                    const originalText = downloadButton.textContent;
+                                    downloadButton.textContent = 'Command Copied!';
+                                    downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                                    
+                                    setTimeout(() => {
+                                        downloadButton.textContent = originalText;
+                                        downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                                    }, 2000);
+                                } else {
+                                    console.error('Clipboard copy failed');
+                                    // Fallback: show command in a more user-friendly way
+                                    showCommandFallback(command);
+                                }
+                            }).catch((error) => {
+                                console.error('Error copying to clipboard:', error);
+                                // Fallback: show command in a more user-friendly way
+                                showCommandFallback(command);
+                            });
+                        } else {
+                            console.error('Command generation failed:', response.error);
+                            alert('Failed to generate download command');
+                        }
+                    }).catch((error) => {
+                        console.error('Error generating command:', error);
+                        alert('Failed to generate download command');
+                    });
+                }).catch((error) => {
+                    console.error('Error loading settings:', error);
+                    // Fallback to default command with safari cookies
+                    const command = `yt-dlp "https://vimeo.com/${videoInfo.videoId}" --cookies-from-browser safari -o "~/Downloads/%(title)s.%(ext)s"`;
+                    
+                    // Copy command to clipboard using content script method
+                    copyToClipboard(command).then((success) => {
+                        if (success) {
+                            const originalText = downloadButton.textContent;
+                            downloadButton.textContent = 'Command Copied!';
+                            downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                            
+                            setTimeout(() => {
+                                downloadButton.textContent = originalText;
+                                downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                            }, 2000);
+                        } else {
+                            console.error('Clipboard copy failed');
+                            // Fallback: show command in a more user-friendly way
+                            showCommandFallback(command);
+                        }
+                    }).catch((error) => {
+                        console.error('Error copying to clipboard:', error);
+                        // Fallback: show command in a more user-friendly way
+                        showCommandFallback(command);
+                    });
+                });
             } else if (videoInfo.type === 'reddit-hls') {
                 // Handle Reddit HLS video download
                 const command = `yt-dlp "${videoInfo.hlsUrl}"`;
@@ -732,13 +1027,114 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
 
         container.appendChild(videoIdDisplay);
-        container.appendChild(viewButton);
+        // Only add view button if it has content (not on native pages)
+        if (viewButton.textContent) {
+            container.appendChild(viewButton);
+        }
         container.appendChild(downloadButton);
 
         return container;
     }
 
-    
+    // Function to add YouTube controls with multiple fallback strategies
+    function addYouTubeFallbackControls(videoInfo) {
+        debugLog('Attempting YouTube fallback control placement...');
+        // Check if we've already added controls
+        if (document.querySelector('[data-native-video-controls-added]')) {
+            debugLog('Native video controls already added');
+            return;
+        }
+        const controlPanel = createControlPanel(videoInfo);
+        // Strategy 1: Try to find any video-related container
+        const videoContainers = [
+            '#movie_player',
+            '#player',
+            '.html5-video-container',
+            'ytd-watch-flexy',
+            '#content',
+            '#page-manager',
+            '#primary',
+            '#primary-inner'
+        ];
+        for (const selector of videoContainers) {
+            const element = document.querySelector(selector);
+            if (element && element.parentElement) {
+                debugLog(`Found fallback container: ${selector}`);
+                try {
+                    element.parentElement.insertBefore(controlPanel, element.parentElement.firstChild);
+                    document.body.setAttribute('data-native-video-controls-added', 'true');
+                    debugLog(`YouTube fallback control panel added using ${selector}`);
+                    return;
+                } catch (error) {
+                    debugLog(`Failed to insert using ${selector}:`, error);
+                    continue;
+                }
+            }
+        }
+        // Strategy 2: Try to find any element with 'video' or 'player' in its attributes
+        const allElements = document.querySelectorAll('*');
+        for (const element of allElements) {
+            const hasVideoAttributes = 
+                (element.id && (element.id.includes('video') || element.id.includes('player')))
+                || (element.className && (element.className.includes('video') || element.className.includes('player')))
+                || (element.getAttribute && (
+                    (element.getAttribute('data-testid') && (element.getAttribute('data-testid').includes('video') || element.getAttribute('data-testid').includes('player')))
+                ));
+            if (hasVideoAttributes && element.parentElement) {
+                debugLog(`Found video-related element: ${element.tagName} ${element.id || element.className}`);
+                try {
+                    element.parentElement.insertBefore(controlPanel, element.parentElement.firstChild);
+                    document.body.setAttribute('data-native-video-controls-added', 'true');
+                    debugLog('YouTube fallback control panel added using video-related element');
+                    return;
+                } catch (error) {
+                    debugLog('Failed to insert using video-related element:', error);
+                    continue;
+                }
+            }
+        }
+        // Strategy 3: Try to find the main content area
+        const mainContentSelectors = [
+            'main',
+            '#main',
+            '#content',
+            '#page-manager',
+            'ytd-app',
+            'ytd-watch-flexy'
+        ];
+        for (const selector of mainContentSelectors) {
+            const element = document.querySelector(selector);
+            if (element) {
+                debugLog(`Found main content area: ${selector}`);
+                try {
+                    element.insertBefore(controlPanel, element.firstChild);
+                    document.body.setAttribute('data-native-video-controls-added', 'true');
+                    debugLog(`YouTube fallback control panel added to main content: ${selector}`);
+                    return;
+                } catch (error) {
+                    debugLog(`Failed to insert into ${selector}:`, error);
+                    continue;
+                }
+            }
+        }
+        // Strategy 4: Last resort - add to body
+        debugLog('All fallback strategies failed, adding to body as last resort');
+        try {
+            document.body.insertBefore(controlPanel, document.body.firstChild);
+            document.body.setAttribute('data-native-video-controls-added', 'true');
+            debugLog('YouTube fallback control panel added to body as last resort');
+        } catch (error) {
+            debugLog('Failed to add control panel to body:', error);
+            // If even this fails, append to body
+            try {
+                document.body.appendChild(controlPanel);
+                document.body.setAttribute('data-native-video-controls-added', 'true');
+                debugLog('YouTube fallback control panel appended to body');
+            } catch (finalError) {
+                debugLog('All YouTube control placement strategies failed:', finalError);
+            }
+        }
+    }
 
     // Function to process a video element
     function processVideoElement(element) {
@@ -770,51 +1166,30 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         debugLog('Video detected:', videoInfo, 'from element:', element);
 
-        // Handle Google Developers frame case
-        if (videoInfo.type === 'google-developers-frame') {
-            debugLog('Processing Google Developers frame:', videoInfo.frameUrl);
-            
-            // For Google Developers frames, we need to wait for the frame to load and then check its content
-            // We'll try to detect the actual video ID from the frame content after it loads
-            setTimeout(() => {
-                try {
-                    const frameDoc = element.contentDocument || element.contentWindow.document;
-                    if (frameDoc) {
-                        const frameIframes = frameDoc.querySelectorAll('iframe');
-                        frameIframes.forEach(frameIframe => {
-                            const frameSrc = frameIframe.getAttribute('src');
-                            if (frameSrc) {
-                                const match = frameSrc.match(/(?:youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-                                if (match) {
-                                    debugLog('Found actual YouTube video ID in frame:', match[1]);
-                                    
-                                    // Only create control panel if we found a real video ID
-                                    const actualVideoInfo = {
-                                        type: 'youtube',
-                                        videoId: match[1]
-                                    };
-                                    
-                                    // Check if we've already added controls for this video
-                                    if (element.dataset.videoControlsAdded) return;
-                                    element.dataset.videoControlsAdded = 'true';
-                                    
-                                    // Create and insert control panel
-                                    const controlPanel = createControlPanel(actualVideoInfo);
-                                    element.parentNode.insertBefore(controlPanel, element);
-                                }
-                            }
-                        });
-                    }
-                } catch (error) {
-                    debugLog('Could not access frame content due to CORS:', error);
-                }
-            }, 2000);
-            
-            return;
-        }
-
         // Create and insert control panel
         const controlPanel = createControlPanel(videoInfo);
+        
+        // For iframe videos (YouTube, Vimeo), try to insert before the video container
+        if (element.tagName === 'IFRAME') {
+            // Look for common video container classes
+            let container = element.parentElement;
+            const containerClasses = ['video-container', 'video-container-16-9', 'embed-container', 'video-wrapper'];
+            
+            // Check if parent has video container classes
+            while (container && container !== document.body) {
+                const hasContainerClass = containerClasses.some(cls => 
+                    container.className && container.className.includes(cls)
+                );
+                
+                if (hasContainerClass) {
+                    // Insert before the container
+                    container.parentNode.insertBefore(controlPanel, container);
+                    return;
+                }
+                
+                container = container.parentElement;
+            }
+        }
         
         // Find the post-media-container div and insert at the very beginning
         let targetContainer = element;
@@ -884,6 +1259,42 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         debugLog('=== STARTING VIDEO SCAN ===');
         debugLog('Current URL:', window.location.href);
         debugLog('Is Reddit:', window.location.hostname.includes('reddit.com'));
+        
+        // Check for native video pages if enabled
+        if (nativePagesEnabled) {
+            const nativeVideoInfo = extractNativeVideoInfo();
+            if (nativeVideoInfo) {
+                debugLog('Native video page detected, creating control panel');
+                
+                // Check if we've already added controls for this native video
+                if (document.querySelector('[data-native-video-controls-added]')) {
+                    debugLog('Native video controls already added');
+                    return;
+                }
+                
+                // For native pages, we need to wait for the proper elements to be available
+                // and handle dynamic page structure changes
+                if (window.location.hostname.includes('youtube.com')) {
+                    // For YouTube, wait for the proper page structure
+                    waitForYouTubeElements(nativeVideoInfo);
+                    return; // Skip regular video scanning for native pages
+                } else if (window.location.hostname.includes('vimeo.com')) {
+                    // For Vimeo, try to insert near the video player
+                    const videoContainer = document.querySelector('.vp-player, .vp-video-wrapper, .vp-preview');
+                    if (videoContainer) {
+                        const controlPanel = createControlPanel(nativeVideoInfo);
+                        videoContainer.parentElement.insertBefore(controlPanel, videoContainer.parentElement.firstChild);
+                        document.body.setAttribute('data-native-video-controls-added', 'true');
+                        debugLog('Native Vimeo video control panel added');
+                        return; // Skip regular video scanning for native pages
+                    } else {
+                        // Wait for Vimeo elements to load
+                        waitForVimeoElements(nativeVideoInfo);
+                        return; // Skip regular video scanning for native pages
+                    }
+                }
+            }
+        }
         
         // Look for lite-youtube elements
         const liteYoutubeElements = document.querySelectorAll('lite-youtube');

@@ -13,6 +13,7 @@ This extension was vibe-coded with Cursor as a lark. Most of this README too. I 
 
 - **Automatic Detection**: Detects embedded videos in various formats:
   - YouTube videos (`lite-youtube` elements, iframe embeds)
+  - Vimeo videos (iframe embeds)
   - Reddit videos (`shreddit-player-2`, `shreddit-player`, `video` elements)
   - Other embedded video formats
 
@@ -20,7 +21,7 @@ This extension was vibe-coded with Cursor as a lark. Most of this README too. I 
 
 - **Direct Video Links**: Provides buttons to open videos directly on their source platforms
 
-- **Download with yt-dlp**: Copies yt-dlp command to clipboard for YouTube videos
+- **Download with yt-dlp**: Copies yt-dlp command to clipboard for YouTube and Vimeo videos
 - **Download with curl**: Copies curl command to clipboard for Reddit videos
 - **Configurable cookies**: Settings to specify which browser's cookies to use for authentication
 
@@ -96,14 +97,24 @@ The extension detects videos in these formats:
 - `<iframe src="https://youtu.be/VIDEO_ID">` elements
 - `<shreddit-embed>` elements containing YouTube iframes
 
+### Vimeo Videos:
+- `<iframe src="https://player.vimeo.com/video/VIDEO_ID">` elements
+
 ### Reddit Videos:
 - `<shreddit-player-2>` elements with Reddit-hosted videos
 
-### Examples of Supported YouTube iframe URLs:
+### Examples of Supported Video URLs:
+
+**YouTube iframe URLs:**
 - `https://www.youtube.com/embed/tgbNymZ7vqY`
 - `https://www.youtube.com/embed/tgbNymZ7vqY?autoplay=1&mute=1`
 - `https://www.youtube.com/embed/GQigLJ6iV4Y?html5=1&enablejsapi=1`
 - `https://www.youtube.com/embed/I989pigiJzI?list=PL7dF9e2qSW0aPkIbdB8KfpFLDi0U9Ubgx&mute=1`
+
+**Vimeo iframe URLs:**
+- `https://player.vimeo.com/video/1008872622`
+- `https://player.vimeo.com/video/1008872622?h=3dec58a0f7`
+- `https://player.vimeo.com/video/123456789?autoplay=1&muted=1`
 
 ## Technical Details
 
@@ -130,7 +141,16 @@ To modify the extension:
 
 ## Changelog
 
-### v1.2.0 (Latest)
+### v1.3.0 (Latest)
+- **🎬 Vimeo Video Support**: Added detection and download support for Vimeo videos (both embedded and native pages)
+- **🌐 Native Page Support**: Added option to show controls on native YouTube and Vimeo video pages (toggleable in settings)
+- **🎯 Enhanced Vimeo Detection**: Robust video ID extraction from URLs and page content for various Vimeo URL formats
+- **🔧 Improved YouTube Native Pages**: Better positioning of controls on YouTube native pages with fallback strategies
+- **🐛 Bug Fixes**: Fixed Google Developers demo page detection by skipping cross-origin frames
+- **⚡ Performance**: Optimized video detection logic and reduced unnecessary processing
+- **📱 Better UX**: Cleaner interface on native video pages (removes redundant "YouTube"/"Vimeo" buttons)
+
+### v1.2.0
 - **🎯 Enhanced Reddit Video Detection**: Improved detection of Reddit videos including Shadow DOM traversal
 - **🔧 Debug Mode**: Added optional debug logging that can be toggled in extension settings (off by default)
 - **⚡ Smart Scanning**: Periodic scanning now stops automatically when no new videos are found, improving performance

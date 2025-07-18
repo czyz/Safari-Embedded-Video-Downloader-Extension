@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusText = document.getElementById('status-text');
     const cookiesBrowserSelect = document.getElementById('cookies-browser');
     const debugModeCheckbox = document.getElementById('debug-mode');
+    const nativePagesCheckbox = document.getElementById('native-pages');
     const saveSettingsButton = document.getElementById('save-settings');
     
     // Load saved settings
@@ -14,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     saveSettingsButton.addEventListener('click', saveSettings);
     
     function loadSettings() {
-        browser.storage.local.get(['cookiesBrowser', 'debugMode']).then((result) => {
+        browser.storage.local.get(['cookiesBrowser', 'debugMode', 'nativePages']).then((result) => {
             if (result.cookiesBrowser) {
                 cookiesBrowserSelect.value = result.cookiesBrowser;
             } else {
@@ -28,21 +29,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Default to false (debug off)
                 debugModeCheckbox.checked = false;
             }
+            
+            if (result.nativePages !== undefined) {
+                nativePagesCheckbox.checked = result.nativePages;
+            } else {
+                // Default to false (native pages off)
+                nativePagesCheckbox.checked = false;
+            }
         }).catch((error) => {
             console.error('Error loading settings:', error);
             // Default to safari on error
             cookiesBrowserSelect.value = 'safari';
             debugModeCheckbox.checked = false;
+            nativePagesCheckbox.checked = false;
         });
     }
     
     function saveSettings() {
         const cookiesBrowser = cookiesBrowserSelect.value;
         const debugMode = debugModeCheckbox.checked;
+        const nativePages = nativePagesCheckbox.checked;
         
         browser.storage.local.set({
             cookiesBrowser: cookiesBrowser,
-            debugMode: debugMode
+            debugMode: debugMode,
+            nativePages: nativePages
         }).then(() => {
             // Show success message
             const originalText = saveSettingsButton.textContent;
