@@ -30,7 +30,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     
     debugLog('=== EMBEDDED VIDEO DETECTOR EXTENSION LOADED ===');
-    debugLog('Extension version: 1.3.0');
+    debugLog('Extension version: 1.3.1');
     debugLog('Current page:', window.location.href);
     debugLog('User agent:', navigator.userAgent);
     debugLog('Native pages enabled:', nativePagesEnabled);
@@ -141,6 +141,39 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         
         debugLog('No Vimeo video ID found in page content');
         return null;
+    }
+    
+    // Function to check if video info contains meaningful data for user interaction
+    function hasMeaningfulVideoInfo(videoInfo) {
+        if (!videoInfo) return false;
+        
+        switch (videoInfo.type) {
+            case 'youtube':
+                // Must have a video ID for YouTube
+                return videoInfo.videoId && videoInfo.videoId.length > 0;
+                
+            case 'vimeo':
+                // Must have a video ID for Vimeo
+                return videoInfo.videoId && videoInfo.videoId.length > 0;
+                
+            case 'reddit':
+                // Must have a video URL for Reddit
+                return videoInfo.videoUrl && videoInfo.videoUrl.length > 0;
+                
+            case 'reddit-hls':
+                // Must have an HLS URL for Reddit HLS
+                return videoInfo.hlsUrl && videoInfo.hlsUrl.length > 0;
+                
+            case 'reddit-blob':
+                // Must have a video ID for Reddit blob videos
+                return videoInfo.videoId && videoInfo.videoId.length > 0;
+                
+            default:
+                // Unknown type - require at least some meaningful data
+                return (videoInfo.videoId && videoInfo.videoId.length > 0) ||
+                       (videoInfo.videoUrl && videoInfo.videoUrl.length > 0) ||
+                       (videoInfo.hlsUrl && videoInfo.hlsUrl.length > 0);
+        }
     }
     
     // Function to wait for YouTube elements to be properly loaded
@@ -541,7 +574,10 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         debugLog('Checking Reddit condition for:', element.tagName, element.getAttribute('data-testid'));
         if (element.tagName === 'SHREDDIT-PLAYER-2' || 
             element.tagName === 'SHREDDIT-PLAYER' ||
-            element.tagName === 'VIDEO' ||
+            (element.tagName === 'VIDEO' && (element.getAttribute('data-testid')?.includes('video') || 
+                                            element.getAttribute('src')?.includes('reddit.com') ||
+                                            element.getAttribute('src')?.includes('v.redd.it') ||
+                                            element.getAttribute('poster')?.includes('reddit.com'))) ||
             element.getAttribute('data-testid')?.includes('video')) {
             debugLog('Reddit condition matched!');
             
@@ -660,6 +696,9 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     }
                 }
             }
+            
+            // If we matched Reddit condition but didn't find any meaningful data, don't return anything
+            debugLog('Reddit condition matched but no meaningful video data found');
         }
 
         debugLog('extractVideoInfo returning null - no video info found');
@@ -1165,6 +1204,12 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         element.dataset.videoControlsAdded = 'true';
 
         debugLog('Video detected:', videoInfo, 'from element:', element);
+
+        // Only create control panel if we have meaningful video information
+        if (!hasMeaningfulVideoInfo(videoInfo)) {
+            debugLog('Skipping control panel - no meaningful video information:', videoInfo);
+            return;
+        }
 
         // Create and insert control panel
         const controlPanel = createControlPanel(videoInfo);

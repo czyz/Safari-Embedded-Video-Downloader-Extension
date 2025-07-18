@@ -141,7 +141,13 @@ To modify the extension:
 
 ## Changelog
 
-### v1.3.0 (Latest)
+### v1.3.1 (Latest)
+- **🐛 Bug Fix**: Fixed false positive video detection on non-video content (like background videos on Cursor.com)
+- **🎯 Improved Reddit Detection**: Made Reddit video detection more specific to avoid matching decorative videos
+- **✅ Better Validation**: Added validation to only show control panels when meaningful video data is available
+- **🔧 Enhanced Filtering**: Improved filtering logic to prevent "Reddit unknown" controls on non-Reddit pages
+
+### v1.3.0
 - **🎬 Vimeo Video Support**: Added detection and download support for Vimeo videos (both embedded and native pages)
 - **🌐 Native Page Support**: Added option to show controls on native YouTube and Vimeo video pages (toggleable in settings)
 - **🎯 Enhanced Vimeo Detection**: Robust video ID extraction from URLs and page content for various Vimeo URL formats
