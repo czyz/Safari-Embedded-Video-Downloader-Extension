@@ -26,17 +26,9 @@ This extension was vibe-coded with Cursor as a lark. Most of this README too. I 
 
 ## Installation
 
-### Option 1: Download from Releases (Recommended)
+**Note**: Safari extensions can only be installed from the Mac App Store. This extension is provided as open source for developers and enthusiasts who want to build and run it locally.
 
-1. Go to the [Releases page](https://github.com/czyz/Safari-Embedded-Video-Downloader-Extension/releases)
-2. Download the latest release (e.g., `safari-video-extension-v1.1.0.zip`)
-3. Extract the downloaded zip file
-4. Open Safari and go to **Safari > Settings > Extensions**
-5. Click **Add Extension...**
-6. Navigate to the extracted folder and select it
-7. Enable the extension
-
-### Option 2: Build from Source
+### Build from Source
 
 1. Clone this repository:
    ```bash
@@ -44,16 +36,15 @@ This extension was vibe-coded with Cursor as a lark. Most of this README too. I 
    cd Safari-Embedded-Video-Downloader-Extension
    ```
 2. Open the project in Xcode by double-clicking `Youtube embed to URL.xcodeproj`
-3. Build the project (⌘+B)
-4. Open Safari and go to **Safari > Settings > Extensions**
-5. Click **Add Extension...**
-6. Navigate to the project folder and select it
-7. Enable the extension
+3. Build and run the project (⌘+R)
+4. The extension will be automatically installed in Safari
+5. Go to **Safari > Settings > Extensions** and enable the extension by checking the checkbox
 
 ### System Requirements
 
 - macOS 12.0 or later
 - Safari 15.0 or later
+- Xcode 14.0 or later (for building from source)
 - For video downloads: `yt-dlp` (install via `brew install yt-dlp`)
 
 ## Usage
@@ -126,8 +117,9 @@ The extension detects videos in these formats:
 To modify the extension:
 
 1. Edit the files in this directory
-2. Reload the extension in Safari Settings
-3. Test on pages with YouTube videos
+2. Build and run the project in Xcode (⌘+R)
+3. The extension will be automatically reloaded in Safari
+4. Test on pages with YouTube videos
 
 ### Key Files
 
