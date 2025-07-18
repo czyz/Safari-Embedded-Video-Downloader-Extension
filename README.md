@@ -2,7 +2,7 @@
 
 A Safari extension that automatically detects YouTube videos on web pages and provides convenient controls for opening the video in a new tab and for generating the command-line for downloading videos (with yt-dlp or curl where appropriate).
 
-This extension was vibe-coded with Cursor as a lark. Most of this README too.
+This extension was vibe-coded with Cursor as a lark. Most of this README too. I needed this and threw a couple prompts at the problem and probably evaporated away the amount of water needed to slake the thirst of a small country in the process, but I'm impressed things have gotten to the point where something that seems functional and is this complex can come out the other side. I wouldn't advise trusting this code to operate your pacemaker.
 
 ## Features
 
