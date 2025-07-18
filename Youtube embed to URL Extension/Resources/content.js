@@ -217,12 +217,20 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
         }
 
-        // Check for Reddit video (shreddit-player-2)
-        if (element.tagName === 'SHREDDIT-PLAYER-2') {
+        // Check for Reddit video (multiple possible element types)
+        if (element.tagName === 'SHREDDIT-PLAYER-2' || 
+            element.tagName === 'SHREDDIT-PLAYER' ||
+            element.tagName === 'VIDEO' ||
+            element.getAttribute('data-testid')?.includes('video')) {
+            
+            console.log('Processing Reddit video element:', element.tagName, element.getAttribute('data-testid'));
+            
             const packagedMediaJson = element.getAttribute('packaged-media-json');
             if (packagedMediaJson) {
                 try {
                     const mediaData = JSON.parse(packagedMediaJson);
+                    console.log('Reddit media data:', mediaData);
+                    
                     if (mediaData.playbackMp4s && mediaData.playbackMp4s.permutations) {
                         // Find the highest resolution
                         const permutations = mediaData.playbackMp4s.permutations;
@@ -248,13 +256,45 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     console.error('Error parsing Reddit video data:', error);
                 }
             } else {
-                // New: Handle HLS-only Reddit videos
+                // Check for HLS URL (including with query parameters)
                 const hlsUrl = element.getAttribute('src');
-                if (hlsUrl && hlsUrl.endsWith('.m3u8')) {
+                if (hlsUrl && hlsUrl.includes('.m3u8')) {
+                    console.log('Found Reddit HLS URL:', hlsUrl);
                     return {
                         type: 'reddit-hls',
                         hlsUrl: hlsUrl
                     };
+                }
+                
+                // Check for direct video URL
+                const videoUrl = element.getAttribute('src');
+                if (videoUrl && (videoUrl.includes('.mp4') || videoUrl.includes('reddit.com') || videoUrl.includes('v.redd.it'))) {
+                    console.log('Found Reddit video URL:', videoUrl);
+                    return {
+                        type: 'reddit',
+                        videoUrl: videoUrl,
+                        resolution: 'unknown'
+                    };
+                }
+                
+                // Check for data attributes that might contain video info
+                const dataAttributes = element.attributes;
+                for (let i = 0; i < dataAttributes.length; i++) {
+                    const attr = dataAttributes[i];
+                    if (attr.name.startsWith('data-') && attr.value.includes('http')) {
+                        try {
+                            const data = JSON.parse(attr.value);
+                            if (data.url || data.src) {
+                                return {
+                                    type: 'reddit',
+                                    videoUrl: data.url || data.src,
+                                    resolution: 'unknown'
+                                };
+                            }
+                        } catch (e) {
+                            // Not JSON, continue
+                        }
+                    }
                 }
             }
         }
@@ -294,7 +334,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         } else if (videoInfo.type === 'reddit') {
             videoIdDisplay.textContent = `Reddit ${videoInfo.resolution}`;
         } else if (videoInfo.type === 'reddit-hls') {
-            videoIdDisplay.textContent = 'Reddit HLS';
+            videoIdDisplay.textContent = 'Reddit HLS Video';
         }
 
         // View button (YouTube or Reddit)
@@ -541,19 +581,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             console.log('Processing Google Developers frame:', videoInfo.frameUrl);
             
             // For Google Developers frames, we need to wait for the frame to load and then check its content
-            // The default video ID for the YouTube Player Demo is 'M7lc1UVf-VE'
-            const defaultVideoId = 'M7lc1UVf-VE';
-            
-            // Create control panel with the default video ID
-            const controlPanel = createControlPanel({
-                type: 'youtube',
-                videoId: defaultVideoId
-            });
-            
-            // Insert the control panel
-            element.parentNode.insertBefore(controlPanel, element);
-            
-            // Also try to detect the actual video ID from the frame content after it loads
+            // We'll try to detect the actual video ID from the frame content after it loads
             setTimeout(() => {
                 try {
                     const frameDoc = element.contentDocument || element.contentWindow.document;
@@ -565,11 +593,20 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                                 const match = frameSrc.match(/(?:youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
                                 if (match) {
                                     console.log('Found actual YouTube video ID in frame:', match[1]);
-                                    // Update the control panel with the actual video ID
-                                    const videoIdDisplay = controlPanel.querySelector('.video-id');
-                                    if (videoIdDisplay) {
-                                        videoIdDisplay.textContent = `Video ID: ${match[1]}`;
-                                    }
+                                    
+                                    // Only create control panel if we found a real video ID
+                                    const actualVideoInfo = {
+                                        type: 'youtube',
+                                        videoId: match[1]
+                                    };
+                                    
+                                    // Check if we've already added controls for this video
+                                    if (element.dataset.videoControlsAdded) return;
+                                    element.dataset.videoControlsAdded = 'true';
+                                    
+                                    // Create and insert control panel
+                                    const controlPanel = createControlPanel(actualVideoInfo);
+                                    element.parentNode.insertBefore(controlPanel, element);
                                 }
                             }
                         });
@@ -623,10 +660,57 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log('Found shreddit-embed elements:', shredditEmbedElements.length);
         shredditEmbedElements.forEach(processVideoElement);
 
-        // Look for Reddit video players
-        const redditPlayerElements = document.querySelectorAll('shreddit-player-2');
-        console.log('Found shreddit-player-2 elements:', redditPlayerElements.length);
-        redditPlayerElements.forEach(processVideoElement);
+        // Look for Reddit video players - try multiple possible selectors
+        const redditPlayerElements = document.querySelectorAll('shreddit-player-2, shreddit-player, [data-testid*="video"], video');
+        console.log('Found Reddit video elements:', redditPlayerElements.length);
+        redditPlayerElements.forEach((element, index) => {
+            console.log(`Reddit video element ${index}:`, element.tagName, element.className, element.getAttribute('data-testid'));
+            console.log('Element attributes:', {
+                'packaged-media-json': element.getAttribute('packaged-media-json'),
+                'src': element.getAttribute('src'),
+                'data-testid': element.getAttribute('data-testid'),
+                'class': element.className,
+                'poster': element.getAttribute('poster'),
+                'preview': element.getAttribute('preview')
+            });
+            
+            // Additional debugging for shreddit-player-2 elements
+            if (element.tagName === 'SHREDDIT-PLAYER-2') {
+                console.log('SHREDDIT-PLAYER-2 found with src:', element.getAttribute('src'));
+                console.log('SHREDDIT-PLAYER-2 poster:', element.getAttribute('poster'));
+                console.log('SHREDDIT-PLAYER-2 preview:', element.getAttribute('preview'));
+            }
+            
+            processVideoElement(element);
+        });
+
+        // Additional debugging for Reddit-specific elements
+        if (window.location.hostname.includes('reddit.com')) {
+            console.log('On Reddit - looking for video-related elements...');
+            
+            // Look for any elements that might contain video data
+            const allElements = document.querySelectorAll('*');
+            const videoRelatedElements = Array.from(allElements).filter(el => {
+                const attrs = el.attributes;
+                for (let i = 0; i < attrs.length; i++) {
+                    const attr = attrs[i];
+                    if (attr.name.includes('video') || 
+                        attr.name.includes('media') || 
+                        attr.name.includes('player') ||
+                        attr.value.includes('video') ||
+                        attr.value.includes('media') ||
+                        attr.value.includes('player')) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            
+            console.log('Found video-related elements:', videoRelatedElements.length);
+            videoRelatedElements.slice(0, 10).forEach((el, index) => {
+                console.log(`Video-related element ${index}:`, el.tagName, el.className, el.getAttribute('data-testid'));
+            });
+        }
     }
 
     // Initial scan
