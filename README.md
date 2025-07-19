@@ -15,6 +15,7 @@ This extension was vibe-coded with Cursor as a lark. Most of this README too. I 
   - YouTube videos (`lite-youtube` elements, iframe embeds)
   - Vimeo videos (iframe embeds)
   - Reddit videos (`shreddit-player-2`, `shreddit-player`, `video` elements)
+  - Steam game trailers (`video` elements with Steam URLs)
   - Other embedded video formats
 
 - **Video Information**: Displays video details (ID, type, source) above each detected video
@@ -22,7 +23,7 @@ This extension was vibe-coded with Cursor as a lark. Most of this README too. I 
 - **Direct Video Links**: Provides buttons to open videos directly on their source platforms
 
 - **Download with yt-dlp**: Copies yt-dlp command to clipboard for YouTube and Vimeo videos
-- **Download with curl**: Copies curl command to clipboard for Reddit videos
+- **Download with curl**: Copies curl command to clipboard for Reddit and Steam videos
 - **Configurable cookies**: Settings to specify which browser's cookies to use for authentication
 
 ## Installation
@@ -103,6 +104,9 @@ The extension detects videos in these formats:
 ### Reddit Videos:
 - `<shreddit-player-2>` elements with Reddit-hosted videos
 
+### Steam Videos:
+- `<video>` elements with Steam game trailer URLs (`steamstatic.com`)
+
 ### Examples of Supported Video URLs:
 
 **YouTube iframe URLs:**
@@ -115,6 +119,10 @@ The extension detects videos in these formats:
 - `https://player.vimeo.com/video/1008872622`
 - `https://player.vimeo.com/video/1008872622?h=3dec58a0f7`
 - `https://player.vimeo.com/video/123456789?autoplay=1&muted=1`
+
+**Steam video URLs:**
+- `https://video.akamai.steamstatic.com/store_trailers/257012437/movie480.mp4`
+- `https://video.akamai.steamstatic.com/store_trailers/257012437/movie_max.mp4`
 
 ## Technical Details
 
@@ -141,7 +149,17 @@ To modify the extension:
 
 ## Changelog
 
-### v1.3.2 (Latest)
+### v1.3.4 (Latest)
+- **🎨 CSS Refactoring**: Extracted inline styles to separate CSS file for better maintainability
+- **🚫 Smart Page Detection**: Prevents toolbar display on direct Steam video URLs to avoid redundancy
+- **🔧 Improved Code Organization**: Better separation of styling and logic
+
+### v1.3.3
+- **🎮 Steam Video Support**: Added detection and download support for Steam game trailers
+- **🔗 Direct URL Downloads**: Steam videos can be downloaded directly using curl commands
+- **🎯 Enhanced Detection**: Detects Steam videos from both video elements and data attributes
+
+### v1.3.2
 - **🐛 Bug Fix**: Fixed duplicate control panels appearing on Reddit pages by implementing content-based duplicate prevention
 - **🎯 Enhanced Duplicate Prevention**: Added robust video identifier system to prevent multiple UI elements for the same video content
 - **🔧 Improved Content Tracking**: Better tracking of processed video content across different element types

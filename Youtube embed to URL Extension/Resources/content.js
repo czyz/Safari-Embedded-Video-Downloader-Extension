@@ -30,10 +30,193 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     
     debugLog('=== EMBEDDED VIDEO DETECTOR EXTENSION LOADED ===');
-            debugLog('Extension version: 1.3.2');
+            debugLog('Extension version: 1.3.4');
     debugLog('Current page:', window.location.href);
     debugLog('User agent:', navigator.userAgent);
     debugLog('Native pages enabled:', nativePagesEnabled);
+    
+    // Inject CSS styles
+    function injectStyles() {
+        const styleId = 'video-controls-extension-styles';
+        if (document.getElementById(styleId)) return; // Already injected
+        
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            /* Video Controls Extension Styles */
+            
+            .youtube-video-controls {
+                background: #2d3748;
+                border: 1px solid #4a5568;
+                border-radius: 6px;
+                padding: 8px 12px;
+                margin: 0 0 8px 0;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 12px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                backdrop-filter: blur(10px);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+                position: relative;
+                z-index: 999999;
+            }
+            
+            .youtube-video-controls .video-id-display {
+                color: white;
+                font-weight: 500;
+                margin-right: auto;
+            }
+            
+            .youtube-video-controls .view-button {
+                background: rgba(0, 123, 255, 0.5);
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                text-decoration: none;
+                font-weight: 500;
+                transition: background-color 0.2s;
+                cursor: pointer;
+                border: none;
+                font-size: 11px;
+                white-space: nowrap;
+                line-height: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 20px;
+                font-family: inherit;
+            }
+            
+            .youtube-video-controls .view-button:hover {
+                background: rgba(0, 105, 217, 0.5);
+            }
+            
+            .youtube-video-controls .download-button {
+                background: rgba(40, 167, 69, 0.5);
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                border: none;
+                font-weight: 500;
+                cursor: pointer;
+                font-size: 11px;
+                transition: background-color 0.2s;
+                white-space: nowrap;
+                line-height: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 20px;
+            }
+            
+            .youtube-video-controls .download-button:hover {
+                background: rgba(33, 136, 56, 0.5);
+            }
+            
+            .youtube-video-controls .download-button.copied {
+                background: rgba(40, 167, 69, 0.5);
+            }
+            
+            /* Command Modal Styles */
+            .video-command-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999999;
+                backdrop-filter: blur(5px);
+            }
+            
+            .video-command-box {
+                background: #1a202c;
+                border: 1px solid #4a5568;
+                border-radius: 12px;
+                padding: 24px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            }
+            
+            .video-command-title {
+                color: #e2e8f0;
+                font-size: 18px;
+                font-weight: 600;
+                margin-bottom: 16px;
+                text-align: center;
+            }
+            
+            .video-command-textarea {
+                width: 100%;
+                min-height: 120px;
+                background: #2d3748;
+                border: 1px solid #4a5568;
+                border-radius: 8px;
+                padding: 12px;
+                color: #e2e8f0;
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+                font-size: 13px;
+                line-height: 1.5;
+                resize: vertical;
+                margin-bottom: 16px;
+            }
+            
+            .video-command-textarea:focus {
+                outline: none;
+                border-color: #3182ce;
+                box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+            }
+            
+            .video-command-buttons {
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .video-command-button {
+                background: #3182ce;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                min-width: 120px;
+            }
+            
+            .video-command-button:hover {
+                background: #2c5aa0;
+                transform: translateY(-1px);
+            }
+            
+            .video-command-button.secondary {
+                background: transparent;
+                color: #a0aec0;
+                border: 1px solid #4a5568;
+            }
+            
+            .video-command-button.secondary:hover {
+                background: rgba(255,255,255,0.1);
+                color: #e2e8f0;
+            }
+        `;
+        document.head.appendChild(style);
+        debugLog('CSS styles injected');
+    }
+    
+    // Inject styles immediately
+    injectStyles();
     
     // Function to extract video info from native video pages
     function extractNativeVideoInfo() {
@@ -165,6 +348,9 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             case 'reddit-blob':
                 identifier = `reddit-blob-${videoInfo.videoId}`;
                 break;
+            case 'steam':
+                identifier = `steam-${videoInfo.videoId}`;
+                break;
             default:
                 // Fallback: use element attributes to create a unique identifier
                 const elementId = element.getAttribute('id') || '';
@@ -199,6 +385,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             case 'reddit-blob':
                 // Must have a video ID for Reddit blob videos
                 return videoInfo.videoId && videoInfo.videoId.length > 0;
+                
+            case 'steam':
+                // Must have both video ID and URL for Steam videos
+                return videoInfo.videoId && videoInfo.videoId.length > 0 && 
+                       videoInfo.videoUrl && videoInfo.videoUrl.length > 0;
                 
             default:
                 // Unknown type - require at least some meaningful data
@@ -295,6 +486,18 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         
         // Start checking
         checkForElements();
+    }
+
+    // Function to show copied state on download button
+    function showCopiedState(button) {
+        const originalText = button.textContent;
+        button.textContent = 'Command Copied!';
+        button.classList.add('copied');
+        
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove('copied');
+        }, 2000);
     }
 
     // Function to copy text to clipboard
@@ -733,6 +936,73 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             debugLog('Reddit condition matched but no meaningful video data found');
         }
 
+        // Check for Steam video (game trailers, etc.)
+        if (element.tagName === 'VIDEO' && 
+            (element.getAttribute('src')?.includes('steamstatic.com') || 
+             element.getAttribute('data-mp4-source') || 
+             element.getAttribute('data-webm-source'))) {
+            debugLog('Steam video condition matched!');
+            
+            // Check for data attributes first (parent element might have them)
+            const parentElement = element.parentElement;
+            const steamDataAttrs = parentElement?.getAttribute('data-mp4-source') || 
+                                  parentElement?.getAttribute('data-webm-source') ||
+                                  element.getAttribute('data-mp4-source') ||
+                                  element.getAttribute('data-webm-source');
+            
+            if (steamDataAttrs) {
+                debugLog('Found Steam video data attributes:', steamDataAttrs);
+                // Extract video ID from the URL
+                const videoIdMatch = steamDataAttrs.match(/store_trailers\/(\d+)\//);
+                if (videoIdMatch) {
+                    const videoId = videoIdMatch[1];
+                    debugLog('Extracted Steam video ID:', videoId);
+                    
+                    // Get the best quality video URL
+                    const mp4HdSource = parentElement?.getAttribute('data-mp4-hd-source') || 
+                                       element.getAttribute('data-mp4-hd-source');
+                    const webmHdSource = parentElement?.getAttribute('data-webm-hd-source') || 
+                                        element.getAttribute('data-webm-hd-source');
+                    const mp4Source = parentElement?.getAttribute('data-mp4-source') || 
+                                     element.getAttribute('data-mp4-source');
+                    const webmSource = parentElement?.getAttribute('data-webm-source') || 
+                                      element.getAttribute('data-webm-source');
+                    
+                    // Prefer HD sources, then fall back to standard
+                    const videoUrl = mp4HdSource || webmHdSource || mp4Source || webmSource;
+                    
+                    return {
+                        type: 'steam',
+                        videoId: videoId,
+                        videoUrl: videoUrl,
+                        title: parentElement?.getAttribute('data-video-title') || element.getAttribute('data-video-title') || '',
+                        category: parentElement?.getAttribute('data-video-category') || element.getAttribute('data-video-category') || '',
+                        poster: parentElement?.getAttribute('data-poster') || element.getAttribute('poster') || ''
+                    };
+                }
+            }
+            
+            // Fallback: check if the video src itself is a Steam URL
+            const videoSrc = element.getAttribute('src');
+            if (videoSrc && videoSrc.includes('steamstatic.com')) {
+                debugLog('Found Steam video URL in src:', videoSrc);
+                const videoIdMatch = videoSrc.match(/store_trailers\/(\d+)\//);
+                if (videoIdMatch) {
+                    const videoId = videoIdMatch[1];
+                    debugLog('Extracted Steam video ID from src:', videoId);
+                    
+                    return {
+                        type: 'steam',
+                        videoId: videoId,
+                        videoUrl: videoSrc,
+                        title: element.getAttribute('data-video-title') || '',
+                        category: element.getAttribute('data-video-category') || '',
+                        poster: element.getAttribute('poster') || ''
+                    };
+                }
+            }
+        }
+
         debugLog('extractVideoInfo returning null - no video info found');
         return null;
     }
@@ -741,30 +1011,9 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     function createControlPanel(videoInfo) {
         const container = document.createElement('div');
         container.className = 'youtube-video-controls';
-        container.style.cssText = `
-            background: #2d3748;
-            border: 1px solid #4a5568;
-            border-radius: 6px;
-            padding: 8px 12px;
-            margin: 0 0 8px 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            position: relative;
-            z-index: 999999;
-        `;
 
         const videoIdDisplay = document.createElement('span');
-        videoIdDisplay.style.cssText = `
-            color: white;
-            font-weight: 500;
-            margin-right: auto;
-        `;
+        videoIdDisplay.className = 'video-id-display';
         
         // Check if we're on a native page
         const isNativePage = window.location.hostname.includes('youtube.com') || window.location.hostname.includes('vimeo.com');
@@ -772,6 +1021,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (videoInfo.type === 'youtube') {
             videoIdDisplay.textContent = isNativePage ? `Video ID: ${videoInfo.videoId}` : `YouTube ID: ${videoInfo.videoId}`;
         } else if (videoInfo.type === 'reddit') {
+            // Skip displaying controls for Reddit videos with unknown resolution
+            if (videoInfo.resolution === 'unknown') {
+                debugLog('Skipping Reddit video with unknown resolution');
+                return null; // Return null to prevent control panel creation
+            }
             videoIdDisplay.textContent = `Reddit ${videoInfo.resolution}`;
         } else if (videoInfo.type === 'reddit-hls') {
             videoIdDisplay.textContent = 'Reddit HLS Video';
@@ -779,29 +1033,14 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             videoIdDisplay.textContent = `Reddit Video (${videoInfo.videoId})`;
         } else if (videoInfo.type === 'vimeo') {
             videoIdDisplay.textContent = isNativePage ? `Video ID: ${videoInfo.videoId}` : `Vimeo (${videoInfo.videoId})`;
+        } else if (videoInfo.type === 'steam') {
+            const title = videoInfo.title ? `: ${videoInfo.title}` : '';
+            videoIdDisplay.textContent = `Steam Trailer (${videoInfo.videoId})${title}`;
         }
 
         // View button (YouTube or Reddit)
         const viewButton = document.createElement('button');
-        viewButton.style.cssText = `
-            background: rgba(0, 123, 255, 0.5);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: background-color 0.2s;
-            cursor: pointer;
-            border: none;
-            font-size: 11px;
-            white-space: nowrap;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 20px;
-            font-family: inherit;
-        `;
+        viewButton.className = 'view-button';
         
         if (videoInfo.type === 'youtube') {
             if (!isNativePage) {
@@ -834,41 +1073,20 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     window.open(`https://vimeo.com/${videoInfo.videoId}`, '_blank');
                 });
             }
+        } else if (videoInfo.type === 'steam') {
+            viewButton.textContent = 'View';
+            viewButton.addEventListener('click', () => {
+                window.open(videoInfo.videoUrl, '_blank');
+            });
         }
         
-        viewButton.addEventListener('mouseenter', () => {
-            viewButton.style.background = 'rgba(0, 105, 217, 0.5)';
-        });
-        viewButton.addEventListener('mouseleave', () => {
-            viewButton.style.background = 'rgba(0, 123, 255, 0.5)';
-        });
+        // Note: Hover effects are now handled by CSS
 
         // Download button
         const downloadButton = document.createElement('button');
-        downloadButton.style.cssText = `
-            background: rgba(40, 167, 69, 0.5);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            border: none;
-            font-weight: 500;
-            cursor: pointer;
-            font-size: 11px;
-            transition: background-color 0.2s;
-            white-space: nowrap;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 20px;
-        `;
+        downloadButton.className = 'download-button';
         downloadButton.textContent = 'Download';
-        downloadButton.addEventListener('mouseenter', () => {
-            downloadButton.style.background = 'rgba(33, 136, 56, 0.5)';
-        });
-        downloadButton.addEventListener('mouseleave', () => {
-            downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
-        });
+        // Note: Hover effects are now handled by CSS
         downloadButton.addEventListener('click', () => {
             if (videoInfo.type === 'youtube') {
                 // Handle YouTube video download
@@ -889,11 +1107,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                                 if (success) {
                                     const originalText = downloadButton.textContent;
                                     downloadButton.textContent = 'Command Copied!';
-                                    downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                                    downloadButton.classList.remove('copied');
                                     
                                     setTimeout(() => {
                                         downloadButton.textContent = originalText;
-                                        downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                                        downloadButton.classList.remove('copied');
                                     }, 2000);
                                 } else {
                                     console.error('Clipboard copy failed');
@@ -923,11 +1141,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         if (success) {
                             const originalText = downloadButton.textContent;
                             downloadButton.textContent = 'Command Copied!';
-                            downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                            downloadButton.classList.remove('copied');
                             
                             setTimeout(() => {
                                 downloadButton.textContent = originalText;
-                                downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                                downloadButton.classList.remove('copied');
                             }, 2000);
                         } else {
                             console.error('Clipboard copy failed');
@@ -958,11 +1176,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             if (success) {
                                 const originalText = downloadButton.textContent;
                                 downloadButton.textContent = 'Command Copied!';
-                                downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                                downloadButton.classList.remove('copied');
                                 
                                 setTimeout(() => {
                                     downloadButton.textContent = originalText;
-                                    downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                                    downloadButton.classList.remove('copied');
                                 }, 2000);
                             } else {
                                 console.error('Clipboard copy failed');
@@ -1002,11 +1220,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                                 if (success) {
                                     const originalText = downloadButton.textContent;
                                     downloadButton.textContent = 'Command Copied!';
-                                    downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                                    downloadButton.classList.remove('copied');
                                     
                                     setTimeout(() => {
                                         downloadButton.textContent = originalText;
-                                        downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                                        downloadButton.classList.remove('copied');
                                     }, 2000);
                                 } else {
                                     console.error('Clipboard copy failed');
@@ -1036,11 +1254,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         if (success) {
                             const originalText = downloadButton.textContent;
                             downloadButton.textContent = 'Command Copied!';
-                            downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                            downloadButton.classList.remove('copied');
                             
                             setTimeout(() => {
                                 downloadButton.textContent = originalText;
-                                downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                                downloadButton.classList.remove('copied');
                             }, 2000);
                         } else {
                             console.error('Clipboard copy failed');
@@ -1053,6 +1271,26 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         showCommandFallback(command);
                     });
                 });
+            } else if (videoInfo.type === 'steam') {
+                // Handle Steam video download (direct URL download)
+                const command = `curl -L "${videoInfo.videoUrl}" -o "~/Downloads/steam_trailer_${videoInfo.videoId}.mp4"`;
+                copyToClipboard(command).then((success) => {
+                    if (success) {
+                        const originalText = downloadButton.textContent;
+                        downloadButton.textContent = 'Command Copied!';
+                        downloadButton.classList.remove('copied');
+                        setTimeout(() => {
+                            downloadButton.textContent = originalText;
+                            downloadButton.classList.remove('copied');
+                        }, 2000);
+                    } else {
+                        console.error('Clipboard copy failed');
+                        showCommandFallback(command);
+                    }
+                }).catch((error) => {
+                    console.error('Error copying to clipboard:', error);
+                    showCommandFallback(command);
+                });
             } else if (videoInfo.type === 'reddit-hls') {
                 // Handle Reddit HLS video download
                 const command = `yt-dlp "${videoInfo.hlsUrl}"`;
@@ -1060,10 +1298,10 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     if (success) {
                         const originalText = downloadButton.textContent;
                         downloadButton.textContent = 'Command Copied!';
-                        downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                        downloadButton.classList.remove('copied');
                         setTimeout(() => {
                             downloadButton.textContent = originalText;
-                            downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                            downloadButton.classList.remove('copied');
                         }, 2000);
                     } else {
                         console.error('Clipboard copy failed');
@@ -1081,10 +1319,10 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     if (success) {
                         const originalText = downloadButton.textContent;
                         downloadButton.textContent = 'Command Copied!';
-                        downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                        downloadButton.classList.remove('copied');
                         setTimeout(() => {
                             downloadButton.textContent = originalText;
-                            downloadButton.style.background = 'rgba(40, 167, 69, 0.5)';
+                            downloadButton.classList.remove('copied');
                         }, 2000);
                     } else {
                         console.error('Clipboard copy failed');
@@ -1207,9 +1445,33 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
     }
 
+    // Function to check if element should be skipped (preview elements, etc.)
+    function shouldSkipElement(element) {
+        // Skip preview video elements that are used for scrubbing thumbnails
+        if (element.closest('.shreddit-preview-video-lazy, [class*="preview"], [class*="thumbnail"]')) {
+            debugLog('Skipping preview/thumbnail element:', element.tagName, element.className);
+            return true;
+        }
+        
+        // Skip elements that are inside progress bars, timelines, or control bars
+        if (element.closest('[class*="progress"], [class*="timeline"], [class*="scrubber"], [class*="control-bar"], .control-bar')) {
+            debugLog('Skipping progress/timeline/control-bar element:', element.tagName, element.className);
+            return true;
+        }
+        
+        return false;
+    }
+
     // Function to process a video element
     function processVideoElement(element) {
         debugLog('processVideoElement called with:', element.tagName, element.className);
+        
+        // Check if this element should be skipped
+        if (shouldSkipElement(element)) {
+            debugLog('Skipping element due to preview/timeline context');
+            return;
+        }
+        
         let videoInfo;
         try {
             videoInfo = extractVideoInfo(element);
@@ -1240,6 +1502,16 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return;
         }
         
+        // Additional check: look for any control panel with the same video info
+        const existingControls = document.querySelectorAll('.youtube-video-controls');
+        for (const control of existingControls) {
+            const existingId = control.getAttribute('data-video-identifier');
+            if (existingId === videoIdentifier) {
+                debugLog('Found existing control panel with same identifier:', videoIdentifier);
+                return;
+            }
+        }
+        
         // Mark this element as processed
         element.dataset.videoControlsAdded = 'true';
 
@@ -1253,6 +1525,10 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         // Create and insert control panel
         const controlPanel = createControlPanel(videoInfo);
+        if (!controlPanel) {
+            debugLog('Control panel creation was skipped');
+            return;
+        }
         controlPanel.setAttribute('data-video-identifier', videoIdentifier);
         
         // For iframe videos (YouTube, Vimeo), try to insert before the video container
@@ -1309,6 +1585,12 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // Look for video elements in current scope
             const videoElements = element.querySelectorAll('video');
             videoElements.forEach(video => {
+                // Skip preview/thumbnail elements
+                if (shouldSkipElement(video)) {
+                    debugLog('Skipping preview video in shadow DOM:', video);
+                    return;
+                }
+                
                 debugLog('Found video in shadow DOM:', video);
                 debugLog('Video attributes:', {
                     src: video.getAttribute('src'),
@@ -1322,6 +1604,12 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // Look for other video-related elements
             const otherVideoElements = element.querySelectorAll('lite-youtube, iframe, shreddit-embed, shreddit-player-2, shreddit-player');
             otherVideoElements.forEach(el => {
+                // Skip preview/thumbnail elements
+                if (shouldSkipElement(el)) {
+                    debugLog('Skipping preview video-related element in shadow DOM:', el.tagName, el.className);
+                    return;
+                }
+                
                 debugLog('Found video-related element in shadow DOM:', el.tagName, el.className);
                 videos.push(el);
             });
@@ -1340,11 +1628,30 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return videos;
     }
 
+    // Function to check if we should skip video detection on this page
+    function shouldSkipVideoDetection() {
+        const url = window.location.href;
+        
+        // Skip on direct Steam video URLs to avoid redundancy
+        if (url.includes('steamstatic.com') && (url.includes('.mp4') || url.includes('.webm'))) {
+            debugLog('Skipping video detection on direct Steam video URL');
+            return true;
+        }
+        
+        return false;
+    }
+
     // Function to scan for videos
     function scanForVideos() {
         debugLog('=== STARTING VIDEO SCAN ===');
         debugLog('Current URL:', window.location.href);
         debugLog('Is Reddit:', window.location.hostname.includes('reddit.com'));
+        
+        // Check if we should skip video detection on this page
+        if (shouldSkipVideoDetection()) {
+            debugLog('Skipping video detection for this page type');
+            return;
+        }
         
         // Check for native video pages if enabled
         if (nativePagesEnabled) {
@@ -1405,6 +1712,12 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const redditPlayerElements = document.querySelectorAll('shreddit-player-2, shreddit-player, [data-testid*="video"], video');
         debugLog('Found Reddit video elements:', redditPlayerElements.length);
         redditPlayerElements.forEach((element, index) => {
+            // Skip preview/thumbnail elements
+            if (shouldSkipElement(element)) {
+                debugLog(`Skipping Reddit video element ${index} (preview/thumbnail):`, element.tagName, element.className);
+                return;
+            }
+            
             debugLog(`Reddit video element ${index}:`, element.tagName, element.className, element.getAttribute('data-testid'));
             debugLog('Element attributes:', {
                 'packaged-media-json': element.getAttribute('packaged-media-json'),

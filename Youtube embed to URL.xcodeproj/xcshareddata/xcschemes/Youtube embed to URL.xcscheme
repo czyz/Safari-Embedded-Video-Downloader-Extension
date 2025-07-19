@@ -18,7 +18,7 @@
                BlueprintIdentifier = "B183616C2E297E7100D67CBF"
                BuildableName = "Youtube embed to URL.app"
                BlueprintName = "Youtube embed to URL"
-               ReferencedContainer = "container:../../../../../../Dropbox/backed_up_dropbox/development/Youtube embed to URL/Youtube embed to URL.xcodeproj">
+               ReferencedContainer = "container:Youtube embed to URL.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -38,7 +38,7 @@
                BlueprintIdentifier = "B18361882E297E7200D67CBF"
                BuildableName = "Youtube embed to URLTests.xctest"
                BlueprintName = "Youtube embed to URLTests"
-               ReferencedContainer = "container:../../../../../../Dropbox/backed_up_dropbox/development/Youtube embed to URL/Youtube embed to URL.xcodeproj">
+               ReferencedContainer = "container:Youtube embed to URL.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -49,7 +49,7 @@
                BlueprintIdentifier = "B18361922E297E7200D67CBF"
                BuildableName = "Youtube embed to URLUITests.xctest"
                BlueprintName = "Youtube embed to URLUITests"
-               ReferencedContainer = "container:../../../../../../Dropbox/backed_up_dropbox/development/Youtube embed to URL/Youtube embed to URL.xcodeproj">
+               ReferencedContainer = "container:Youtube embed to URL.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -71,7 +71,7 @@
             BlueprintIdentifier = "B183616C2E297E7100D67CBF"
             BuildableName = "Youtube embed to URL.app"
             BlueprintName = "Youtube embed to URL"
-            ReferencedContainer = "container:../../../../../../Dropbox/backed_up_dropbox/development/Youtube embed to URL/Youtube embed to URL.xcodeproj">
+            ReferencedContainer = "container:Youtube embed to URL.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -88,7 +88,7 @@
             BlueprintIdentifier = "B183616C2E297E7100D67CBF"
             BuildableName = "Youtube embed to URL.app"
             BlueprintName = "Youtube embed to URL"
-            ReferencedContainer = "container:../../../../../../Dropbox/backed_up_dropbox/development/Youtube embed to URL/Youtube embed to URL.xcodeproj">
+            ReferencedContainer = "container:Youtube embed to URL.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
